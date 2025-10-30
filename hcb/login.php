@@ -25,9 +25,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header("Location: index.php");
         exit();
     } else {
-        $error = "Invalid username or password, or account not authorized.";
+        // Store error in session and redirect (PRG pattern)
+        $_SESSION['login_error'] = "Invalid username or password, or account not authorized.";
+        header("Location: login.php?error=1");
+        exit();
     }
 }
+
+// Get error from session if exists
+$login_error = $_SESSION['login_error'] ?? null;
+// Clear error from session after retrieving
+if (isset($_SESSION['login_error'])) {
+    unset($_SESSION['login_error']);
+}
+
+// Get registration error from session if exists
+$registration_error = $_SESSION['registration_error'] ?? null;
+if (isset($_SESSION['registration_error'])) {
+    unset($_SESSION['registration_error']);
+}
+
+// Check if redirected from registration
+$registered = isset($_GET['registered']) && $_GET['registered'] == '1';
+$show_error = isset($_GET['error']) && $_GET['error'] == '1';
+
+// Use registration error if available, otherwise use login error
+$error = $registration_error ?? ($show_error && $login_error ? $login_error : null);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -253,9 +276,78 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         .forgot-link:hover {
             color: #764ba2;
         }
+        
+        /* Back to Company Login Button */
+        .back-to-company-login {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+        
+        .back-to-company-login a {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.25),
+                        0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 1px solid rgba(102, 126, 234, 0.1);
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .back-to-company-login a:hover {
+            background: rgba(255, 255, 255, 1);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(102, 126, 234, 0.35),
+                        0 0 0 1px rgba(255, 255, 255, 0.3) inset;
+            color: #764ba2;
+        }
+        
+        .back-to-company-login a i {
+            font-size: 16px;
+            transition: transform 0.3s ease;
+        }
+        
+        .back-to-company-login a:hover i {
+            transform: translateX(-3px);
+        }
+        
+        /* Responsive */
+        @media (max-width: 480px) {
+            .back-to-company-login {
+                top: 15px;
+                left: 15px;
+            }
+            
+            .back-to-company-login a {
+                padding: 10px 16px;
+                font-size: 13px;
+            }
+            
+            .back-to-company-login a span {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- Back to Company Login Button -->
+    <div class="back-to-company-login">
+        <a href="../company/login.php">
+            <i class="fas fa-arrow-left"></i>
+            <span>Company Login</span>
+        </a>
+    </div>
+    
     <div class="login-container">
         <div class="login-card">
             <div class="logo-section">
@@ -266,9 +358,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <div class="logo-subtitle">Halal Certification Management System</div>
             </div>
             
-            <?php if (isset($error)): ?>
+            <?php if (isset($error) && $error): ?>
             <div class="alert alert-danger">
-                <i class="fas fa-exclamation-circle me-2"></i><?php echo $error; ?>
+                <i class="fas fa-exclamation-circle me-2"></i><?php echo htmlspecialchars($error); ?>
             </div>
             <?php endif; ?>
             
@@ -322,6 +414,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script>
+        // Show success message if redirected from registration
+        <?php if ($registered): ?>
+        Swal.fire({
+            icon: 'success',
+            title: 'Registration Successful!',
+            text: 'Your certifying body account has been created successfully. Please login with your credentials.',
+            confirmButtonColor: '#667eea',
+            timer: 5000,
+            timerProgressBar: true
+        });
+        // Clean URL
+        if (window.history.replaceState) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+        <?php endif; ?>
+
+        // Show error message if registration or login failed
+        <?php if (isset($error) && $error && $show_error): ?>
+        Swal.fire({
+            icon: 'error',
+            title: '<?php echo $registration_error ? "Registration Failed" : "Login Failed"; ?>',
+            text: '<?php echo addslashes($error); ?>',
+            confirmButtonColor: '#667eea'
+        });
+        // Clean URL
+        if (window.history.replaceState) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+        <?php endif; ?>
+    </script>
 </body>
 </html>
 

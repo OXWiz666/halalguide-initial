@@ -1,0 +1,615 @@
+/* 
+ * Tourist Common Styles - Shared across ALL tourist pages
+ * 
+ * This stylesheet is used by:
+ * - establishments.php
+ * - hotels.php
+ * - tourist-spots.php
+ * - prayer-facilities.php
+ * - index.php
+ * 
+ * All spacing, layout, and styling improvements apply uniformly to all pages.
+ */
+
+/* Body spacing for fixed navbar - Applied to all tourist pages */
+body {
+    padding-top: 80px !important;
+}
+
+/* Professional Navigation Spacing */
+.navbar {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+/* User Dropdown Styles */
+.user-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.user-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: linear-gradient(135deg, #2ECC71 0%, #27AE60 100%);
+    color: white;
+    border: none;
+    border-radius: 25px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: 'Poppins', sans-serif;
+}
+
+.user-btn:hover {
+    background: linear-gradient(135deg, #27AE60 0%, #229954 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(46, 204, 113, 0.4);
+}
+
+.user-btn i:first-child {
+    font-size: 18px;
+}
+
+.user-btn i:last-child {
+    font-size: 12px;
+    transition: transform 0.3s ease;
+}
+
+.user-btn.active i:last-child {
+    transform: rotate(180deg);
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    min-width: 200px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    z-index: 1000;
+    border: 1px solid #e0e0e0;
+}
+
+.dropdown-menu.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    color: #333;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.dropdown-item:hover {
+    background: #f8f9fa;
+    color: #2ECC71;
+}
+
+.dropdown-item.logout:hover {
+    background: #ffe6e6;
+    color: #dc3545;
+}
+
+.dropdown-item i {
+    width: 16px;
+    text-align: center;
+}
+
+.dropdown-divider {
+    height: 1px;
+    background: #e0e0e0;
+    margin: 8px 0;
+}
+
+/* Page Header Styles - Professional Layout with Proper Spacing */
+.page-header {
+    background: linear-gradient(135deg, #2ECC71 0%, #27AE60 100%);
+    color: white;
+    padding: 80px 0 60px;
+    margin-bottom: 60px;
+    margin-top: 0;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Subtle decorative overlay for depth */
+.page-header::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, transparent 100%);
+    pointer-events: none;
+}
+
+.page-header .container {
+    position: relative;
+    z-index: 1;
+}
+
+.page-header h1 {
+    font-size: 2.5rem;
+    margin-bottom: 15px;
+    margin-top: 0;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+}
+
+.page-header h1 i {
+    font-size: 2.2rem;
+}
+
+.page-header p {
+    font-size: 1.1rem;
+    opacity: 0.95;
+    margin-bottom: 30px;
+    margin-top: 0;
+    line-height: 1.6;
+}
+
+/* Search Bar Styles */
+.search-bar {
+    max-width: 800px;
+    margin: 40px auto 0;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.search-bar input {
+    flex: 1;
+    padding: 15px 20px;
+    border: none;
+    border-radius: 50px;
+    font-size: 16px;
+    font-family: 'Poppins', sans-serif;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.search-bar input:focus {
+    outline: none;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+.search-bar input::placeholder {
+    color: #999;
+}
+
+.search-bar button {
+    padding: 15px 30px;
+    background: white;
+    color: #2ECC71;
+    border: none;
+    border-radius: 50px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.search-bar button:hover {
+    background: #f0f9f5;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.search-bar button i {
+    font-size: 16px;
+}
+
+/* Establishments/Places Grid Styles */
+.establishments-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 30px;
+    padding: 0 20px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.establishment-card {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.establishment-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(46, 204, 113, 0.2);
+}
+
+.establishment-image {
+    width: 100%;
+    height: 200px;
+    background: linear-gradient(135deg, #2ECC71 0%, #27AE60 100%);
+    background-size: cover;
+    background-position: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 48px;
+    position: relative;
+    overflow: hidden;
+}
+
+.establishment-image i {
+    position: relative;
+    z-index: 1;
+    opacity: 0.9;
+}
+
+/* When background image is present, icon should be hidden or overlay */
+.establishment-image[style*="background-image"] i {
+    display: none;
+}
+
+.establishment-content {
+    padding: 25px;
+}
+
+.establishment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: start;
+    margin-bottom: 15px;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.establishment-header > div {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.establishment-name {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #333;
+    margin: 0;
+    flex: 1;
+}
+
+/* Enhanced Halal Certified Badge */
+.halal-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    box-shadow: 0 3px 12px rgba(16, 185, 129, 0.3);
+    text-transform: uppercase;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    white-space: nowrap;
+    margin-left: 10px;
+}
+
+.halal-badge i {
+    font-size: 14px;
+    animation: certificate-pulse 2s ease-in-out infinite;
+}
+
+@keyframes certificate-pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.9;
+    }
+}
+
+.prayer-badge {
+    background: #3498db;
+    color: white;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    margin-left: 10px;
+}
+
+.establishment-description {
+    color: #666;
+    margin-bottom: 15px;
+    line-height: 1.6;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.establishment-address {
+    color: #888;
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.establishment-contact {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.contact-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.establishment-footer {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-view-map {
+    flex: 1;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #2ECC71 0%, #27AE60 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.btn-view-map:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4);
+}
+
+/* No Results Styles */
+.no-results {
+    text-align: center;
+    padding: 60px 20px;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+}
+
+.no-results i {
+    font-size: 64px;
+    color: #ddd;
+    margin-bottom: 20px;
+}
+
+.no-results h3 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 1.5rem;
+}
+
+.no-results p {
+    color: #666;
+    margin-bottom: 10px;
+    max-width: 500px;
+}
+
+.no-results .btn-view-map {
+    margin-top: 20px;
+    display: inline-block;
+    text-decoration: none;
+}
+
+.results-count {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+    font-size: 1.1rem;
+    font-weight: 500;
+    margin-bottom: 20px;
+}
+
+.results-count:before {
+    content: "✓ ";
+    color: #2ECC71;
+    font-weight: 600;
+}
+
+/* Footer */
+.footer {
+    margin-top: 60px;
+    padding: 30px 0;
+    background: #2c3e50;
+    color: white;
+}
+
+.footer-bottom {
+    text-align: center;
+}
+
+.footer-bottom p {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9rem;
+}
+
+/* Container Improvements - Only override if needed for tourist pages */
+.tourist-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Navbar Active Link */
+.nav-link.active {
+    color: #2ECC71;
+    position: relative;
+}
+
+.nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #2ECC71;
+    border-radius: 2px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    body {
+        padding-top: 70px;
+    }
+    
+    .user-btn span {
+        display: none;
+    }
+    
+    .user-btn {
+        padding: 10px;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        justify-content: center;
+    }
+    
+    .dropdown-menu {
+        right: -10px;
+        min-width: 180px;
+    }
+    
+    .page-header {
+        padding: 60px 0 40px;
+        margin-bottom: 40px;
+    }
+    
+    .page-header h1 {
+        font-size: 1.8rem;
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .page-header h1 i {
+        font-size: 1.8rem;
+    }
+    
+    .page-header p {
+        font-size: 1rem;
+        padding: 0 15px;
+    }
+    
+    .search-bar {
+        flex-direction: column;
+        padding: 0 15px;
+    }
+    
+    .search-bar input {
+        width: 100%;
+    }
+    
+    .search-bar button {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .establishments-grid {
+        grid-template-columns: 1fr;
+        padding: 0 15px;
+        gap: 20px;
+    }
+    
+    .establishment-card {
+        margin: 0;
+    }
+    
+    .no-results {
+        min-height: 300px;
+        padding: 40px 15px;
+    }
+    
+    .no-results i {
+        font-size: 48px;
+    }
+    
+    .no-results h3 {
+        font-size: 1.2rem;
+    }
+    
+    .results-count {
+        padding: 15px;
+        font-size: 1rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .establishment-name {
+        font-size: 1.2rem;
+    }
+    
+    .establishment-header {
+        flex-direction: column;
+        align-items: start;
+        gap: 10px;
+    }
+    
+    .halal-badge,
+    .prayer-badge {
+        margin-left: 0;
+    }
+}
+

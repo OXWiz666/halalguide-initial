@@ -48,63 +48,95 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['username'])) {
         $errors[] = "Please enter a valid email address.";
     }
     
-    // Check duplicates
+    // Validate phone number format (should be 11 digits starting with 09)
+    if (!empty($contact_no) && !preg_match('/^09[0-9]{9}$/', $contact_no)) {
+        $errors[] = "Please enter a valid 11-digit phone number starting with 09.";
+    }
+    
+    // Check duplicates - username
     $check_username = mysqli_query($conn, "SELECT username FROM tbl_useraccount WHERE username = '$username'");
     if (mysqli_num_rows($check_username) > 0) {
         $errors[] = "Username already exists.";
     }
     
-    $check_email = mysqli_query($conn, "SELECT email FROM tbl_admin WHERE email = '$email'");
-    if (mysqli_num_rows($check_email) > 0) {
-        $errors[] = "Email already registered.";
+    // Check if email already exists in multiple tables
+    $check_admin_email = mysqli_query($conn, "SELECT email FROM tbl_admin WHERE email = '$email'");
+    if (mysqli_num_rows($check_admin_email) > 0) {
+        $errors[] = "Email already registered. Please use another email.";
+    }
+    
+    $check_company_email = mysqli_query($conn, "SELECT email FROM tbl_company WHERE email = '$email'");
+    if (mysqli_num_rows($check_company_email) > 0) {
+        $errors[] = "Email already registered. Please use another email.";
+    }
+    
+    $check_tourist_email = mysqli_query($conn, "SELECT email FROM tbl_tourist WHERE email = '$email'");
+    if (mysqli_num_rows($check_tourist_email) > 0) {
+        $errors[] = "Email already registered. Please use another email.";
+    }
+    
+    $check_company_user_email = mysqli_query($conn, "SELECT email FROM tbl_company_user WHERE email = '$email' AND email IS NOT NULL AND email != ''");
+    if (mysqli_num_rows($check_company_user_email) > 0) {
+        $errors[] = "Email already registered. Please use another email.";
+    }
+    
+    // Check if phone number already exists in multiple tables
+    $check_phone_admin = mysqli_query($conn, "SELECT contact_no FROM tbl_admin WHERE contact_no = '$contact_no'");
+    if (mysqli_num_rows($check_phone_admin) > 0) {
+        $errors[] = "Phone number already registered. Please use another phone number.";
+    }
+    
+    $check_phone_company = mysqli_query($conn, "SELECT contant_no FROM tbl_company WHERE contant_no = '$contact_no'");
+    if (mysqli_num_rows($check_phone_company) > 0) {
+        $errors[] = "Phone number already registered. Please use another phone number.";
+    }
+    
+    $check_phone_company_user = mysqli_query($conn, "SELECT contact_no FROM tbl_company_user WHERE contact_no = '$contact_no'");
+    if (mysqli_num_rows($check_phone_company_user) > 0) {
+        $errors[] = "Phone number already registered. Please use another phone number.";
+    }
+    
+    $check_phone_company_person = mysqli_query($conn, "SELECT contact_no FROM tbl_company_person WHERE contact_no = '$contact_no'");
+    if (mysqli_num_rows($check_phone_company_person) > 0) {
+        $errors[] = "Phone number already registered. Please use another phone number.";
+    }
+    
+    $check_phone_tourist = mysqli_query($conn, "SELECT contact_no FROM tbl_tourist WHERE contact_no = '$contact_no'");
+    if (mysqli_num_rows($check_phone_tourist) > 0) {
+        $errors[] = "Phone number already registered. Please use another phone number.";
     }
     
     if (empty($errors)) {
+        // Start session if not already started
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        // Generate IDs
         $currentDateTime = date('Y-m-d H:i:s');
         $organization_id = "ORG" . generate_string($specialcasesCHAR, 15);
         $admin_id = "ADM" . generate_string($specialcasesCHAR, 15);
         $useraccount_id = "UA" . generate_string($specialcasesCHAR, 15);
         
-        mysqli_autocommit($conn, FALSE);
+        // Store registration data in session for verification
+        $_SESSION['pending_registration'] = [
+            'user_type' => 'HCB',
+            'organization_id' => $organization_id,
+            'admin_id' => $admin_id,
+            'useraccount_id' => $useraccount_id,
+            'organization_name' => $organization_name,
+            'firstname' => $firstname,
+            'lastname' => $lastname,
+            'email' => $email,
+            'contact_no' => $contact_no,
+            'address' => $address,
+            'username' => $username,
+            'password' => $password
+        ];
         
-        try {
-            // Insert organization
-            $insert_org = mysqli_query($conn, "INSERT INTO tbl_organization (organization_id, organization_name, contact_no, email, address, status_id, date_added)
-                VALUES ('$organization_id', '$organization_name', '$contact_no', '$email', '$address',
-                (SELECT status_id FROM tbl_status WHERE status = 'Active'), '$currentDateTime')");
-            
-            if (!$insert_org) {
-                throw new Exception("Failed to create organization record: " . mysqli_error($conn));
-            }
-            
-            // Insert admin
-            $insert_admin = mysqli_query($conn, "INSERT INTO tbl_admin (admin_id, firstname, lastname, email, contact_no, organization_id, status_id, date_added)
-                VALUES ('$admin_id', '$firstname', '$lastname', '$email', '$contact_no', '$organization_id',
-                (SELECT status_id FROM tbl_status WHERE status = 'Active'), '$currentDateTime')");
-            
-            if (!$insert_admin) {
-                throw new Exception("Failed to create admin record: " . mysqli_error($conn));
-            }
-            
-            // Insert user account
-            $insert_account = mysqli_query($conn, "INSERT INTO tbl_useraccount (useraccount_id, username, password, admin_id, usertype_id, status_id, date_added)
-                VALUES ('$useraccount_id', '$username', '$password', '$admin_id',
-                (SELECT usertype_id FROM tbl_usertype WHERE usertype = 'Admin'),
-                (SELECT status_id FROM tbl_status WHERE status = 'Active'), '$currentDateTime')");
-            
-            if (!$insert_account) {
-                throw new Exception("Failed to create user account: " . mysqli_error($conn));
-            }
-            
-            mysqli_commit($conn);
-            $success = true;
-            
-        } catch (Exception $e) {
-            mysqli_rollback($conn);
-            $error = "Registration failed: " . $e->getMessage();
-        }
-        
-        mysqli_autocommit($conn, TRUE);
+        // Redirect to phone verification
+        header('Location: ../common/verify-phone.php');
+        exit;
         
     } else {
         $error = implode("<br>", $errors);

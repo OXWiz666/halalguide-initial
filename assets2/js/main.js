@@ -197,8 +197,21 @@ searchBtn.addEventListener('click', (e) => {
     if (searchTerm) {
         // Here you can add search functionality
         console.log('Searching for:', searchTerm);
-        // For now, just show an alert
-        alert(`Searching for: ${searchTerm}\n\nThis feature will be implemented soon!`);
+        // For now, just show a toast notification
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'info',
+                title: 'Search Feature',
+                html: `Searching for: <strong>${searchTerm}</strong><br><br>This feature will be implemented soon!`,
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 4000,
+                timerProgressBar: true
+            });
+        } else {
+            console.log('Searching for:', searchTerm);
+        }
     }
 });
 
@@ -226,7 +239,20 @@ if (contactForm) {
         console.log('Form submitted:', formValues);
         
         // Show success message
-        alert('Thank you for your message! We will get back to you soon.');
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'success',
+                title: 'Message Sent!',
+                text: 'Thank you for your message! We will get back to you soon.',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 4000,
+                timerProgressBar: true
+            });
+        } else {
+            console.log('Thank you for your message! We will get back to you soon.');
+        }
         
         // Reset form
         contactForm.reset();
@@ -246,7 +272,20 @@ if (newsletterForm) {
         
         if (email) {
             console.log('Newsletter subscription:', email);
-            alert('Thank you for subscribing to our newsletter!');
+            if (typeof Swal !== 'undefined') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Subscribed!',
+                    text: 'Thank you for subscribing to our newsletter!',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true
+                });
+            } else {
+                console.log('Thank you for subscribing to our newsletter!');
+            }
             newsletterForm.reset();
         }
     });
@@ -438,17 +477,9 @@ window.addEventListener('scroll', () => {
 // ===================================
 // Service Button Click Handlers
 // ===================================
-const serviceButtons = document.querySelectorAll('.btn-service');
-
-serviceButtons.forEach(button => {
-    button.addEventListener('click', (e) => {
-        e.preventDefault();
-        const serviceName = button.closest('.service-card').querySelector('.service-title').textContent;
-        console.log('Service clicked:', serviceName);
-        // You can add navigation to specific service pages here
-        alert(`You clicked on: ${serviceName}\n\nThis will redirect to the ${serviceName.toLowerCase()} page.`);
-    });
-});
+// Service buttons now navigate directly to their respective pages
+// Links are defined in the HTML: establishments.php, hotels.php, tourist-spots.php, prayer-facilities.php
+// No JavaScript interception needed - buttons work as normal links
 
 // ===================================
 // Loading Animation

@@ -19,8 +19,14 @@ function check_login_index() {
 
 // Function to check kung may access ba ang user to a specific user side
 function check_access($role) {
-    if ($_SESSION['user_role'] !== $role) {
-        header("Location: index.php");
+    if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== $role) {
+        // Redirect based on context
+        $path = dirname($_SERVER['PHP_SELF']);
+        if (strpos($path, '/ncmf') !== false) {
+            header("Location: login.php");
+        } else {
+            header("Location: index.php");
+        }
         exit();
     }
 }

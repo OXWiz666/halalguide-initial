@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Near Me - Halal Certified Establishments | HalalGuide</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    
+    <!-- Leaflet CSS - FREE Map API -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Custom Map CSS -->
+    <link rel="stylesheet" href="map.css" />
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-content">
+            <h1 class="header-title">
+                <i class="fas fa-map-marker-alt pulse-icon"></i>
+                All Establishments Map
+            </h1>
+            <a href="#" id="backBtn" class="back-btn" onclick="handleBackClick(event)">
+                <i class="fas fa-arrow-left"></i>
+                <span id="backBtnText">Back to Home</span>
+            </a>
+        </div>
+    </div>
+    
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <!-- Location Status -->
+            <div class="location-status loading" id="locationStatus">
+                <div class="location-text">
+                    <i class="fas fa-crosshairs fa-spin"></i>
+                    Detecting your location...
+                </div>
+                <div class="location-details">Please allow location access</div>
+            </div>
+            
+            <!-- Search Section -->
+            <div class="search-section">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Search establishments...">
+                </div>
+                
+                <!-- Radius Control (Reference Only - Not Used for Filtering) -->
+                <div class="radius-control">
+                    <label>
+                        <i class="fas fa-circle"></i> Reference Radius (km) <small style="opacity: 0.7;">- for reference only</small>
+                    </label>
+                    <div class="radius-control-wrapper">
+                        <input type="range" id="radiusSlider" min="1" max="50" value="10">
+                        <input type="number" id="radiusInput" class="radius-input" min="1" max="50" value="10">
+                        <span class="km-label">km</span>
+                    </div>
+                    <small style="color: #718096; font-size: 11px; margin-top: 5px; display: block;">
+                        <i class="fas fa-info-circle"></i> All establishments are shown regardless of radius
+                    </small>
+                </div>
+                
+                <!-- Custom Location -->
+                <div class="custom-location-control">
+                    <label>
+                        <i class="fas fa-map-marker-alt"></i> Custom Location
+                    </label>
+                    <div class="custom-location-wrapper">
+                        <input type="text" id="customLocationInput" class="custom-location-input" placeholder="Enter address or click map">
+                        <button onclick="setCustomLocation()" class="btn-set-location">
+                            <i class="fas fa-check"></i>
+                        </button>
+                    </div>
+                    <button onclick="enableMapClickLocation()" id="mapClickBtn" class="btn-map-click">
+                        <i class="fas fa-mouse-pointer"></i> Click on map to set location
+                    </button>
+                </div>
+                
+                <div class="filter-buttons">
+                    <button class="filter-btn active" data-type="all" onclick="filterPlaces('all')">
+                        <i class="fas fa-th"></i> All
+                    </button>
+                    <button class="filter-btn" data-type="establishment" onclick="filterPlaces('establishment')">
+                        <i class="fas fa-store"></i> Establishments
+                    </button>
+                    <button class="filter-btn" data-type="hotel" onclick="filterPlaces('hotel')">
+                        <i class="fas fa-hotel"></i> Hotels
+                    </button>
+                    <button class="filter-btn" data-type="tourist_spot" onclick="filterPlaces('tourist_spot')">
+                        <i class="fas fa-mountain"></i> Tourist Spots
+                    </button>
+                    <button class="filter-btn" data-type="prayer_facility" onclick="filterPlaces('prayer_facility')">
+                        <i class="fas fa-mosque"></i> Prayer Facilities
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Places List -->
+            <div class="places-list" id="placesList">
+                <div class="loading">
+                    <i class="fas fa-spinner"></i>
+                    <p>Loading all establishments...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Map -->
+        <div id="map"></div>
+        
+        <!-- Stats Bar -->
+        <div class="stats-bar" id="statsBar" style="display: none;">
+            <div class="stat-item">
+                <i class="fas fa-certificate"></i>
+                <span><span class="stat-value" id="halalCount">0</span> Halal Certified</span>
+            </div>
+            <div class="stat-item">
+                <i class="fas fa-building"></i>
+                <span><span class="stat-value" id="totalCount">0</span> Total Establishments</span>
+            </div>
+            <div class="stat-item" id="radiusStatItem" style="display: none;">
+                <i class="fas fa-circle"></i>
+                <span>Radius: <span class="stat-value" id="radiusDisplay">10</span> km (reference only)</span>
+            </div>
+        </div>
+        
+        <!-- Floating Action Button -->
+        <button class="fab" onclick="getCurrentLocation()" title="Get My Location">
+            <i class="fas fa-crosshairs"></i>
+        </button>
+    </div>
+    
+    <!-- Leaflet JS - FREE Map API -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Leaflet Routing Machine - FREE Routing -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <script>
+        // Global Variables
+        let map;
+        let userMarker;
+        let userLocation = null;
+        let allPlaces = [];
+        let displayedPlaces = [];
+        let markers = [];
+        let currentFilter = 'all';
+        let radius = 10; // Default radius in km
+        let radiusCircle = null;
+        let routingControl = null;
+        let selectedPlace = null;
+        let mapClickMode = false;
+        let customLocationMarker = null;
+        
+        // South Cotabato Center Coordinates
+        const SOUTH_COTABATO_CENTER = [6.5969, 124.7825];
+        
+        // Create Custom Halal Certified Icons with Badge
+        function createHalalIcon(type, certified) {
+            const baseIcons = {
+                establishment: { color: 'red', icon: 'fa-store' },
+                hotel: { color: 'blue', icon: 'fa-hotel' },
+                prayer_facility: { color: 'green', icon: 'fa-mosque' },
+                tourist_spot: { color: 'yellow', icon: 'fa-mountain' }
+            };
+            
+            const config = baseIcons[type] || baseIcons.establishment;
+            
+            // Create a custom HTML icon with certificate badge
+            if (certified) {
+                // Create a div for the marker
+                const markerDiv = document.createElement('div');
+                markerDiv.className = 'custom-halal-marker';
+                markerDiv.innerHTML = `
+                    <div style="
+                        background: white;
+                        border-radius: 50%;
+                        padding: 5px;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                        position: relative;
+                    ">
+                        <div style="
+                            width: 30px;
+                            height: 30px;
+                            background: ${config.color === 'red' ? '#e74c3c' : 
+                                        config.color === 'blue' ? '#3498db' : 
+                                        config.color === 'green' ? '#2ecc71' : '#f39c12'};
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            color: white;
+                            font-size: 14px;
+                        ">
+                            <i class="fas ${config.icon}"></i>
+                        </div>
+                        <div style="
+                            position: absolute;
+                            top: -5px;
+                            right: -5px;
+                            background: #4caf50;
+                            color: white;
+                            border-radius: 50%;
+                            width: 18px;
+                            height: 18px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 10px;
+                            border: 2px solid white;
+                            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+                        ">
+                            <i class="fas fa-certificate"></i>
+                        </div>
+                    </div>
+                `;
+                
+                return L.divIcon({
+                    html: markerDiv.innerHTML,
+                    className: 'halal-certified-marker',
+                    iconSize: [45, 45],
+                    iconAnchor: [22, 45],
+                    popupAnchor: [0, -45]
+                });
+            } else {
+                // Non-Halal Certified or regular icon with info badge
+                const markerDiv = document.createElement('div');
+                markerDiv.className = 'custom-non-halal-marker';
+                markerDiv.innerHTML = `
+                    <div style="
+                        background: white;
+                        border-radius: 50%;
+                        padding: 5px;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                        position: relative;
+                    ">
+                        <div style="
+                            width: 30px;
+                            height: 30px;
+                            background: ${config.color === 'red' ? '#e74c3c' : 
+                                        config.color === 'blue' ? '#3498db' : 
+                                        config.color === 'green' ? '#2ecc71' : '#f39c12'};
+                            border-radius: 50%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            color: white;
+                            font-size: 14px;
+                        ">
+                            <i class="fas ${config.icon}"></i>
+                        </div>
+                        <div style="
+                            position: absolute;
+                            top: -5px;
+                            right: -5px;
+                            background: #f59e0b;
+                            color: white;
+                            border-radius: 50%;
+                            width: 18px;
+                            height: 18px;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            font-size: 10px;
+                            border: 2px solid white;
+                            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+                        ">
+                            <i class="fas fa-info-circle"></i>
+                        </div>
+                    </div>
+                `;
+                
+                return L.divIcon({
+                    html: markerDiv.innerHTML,
+                    className: 'non-halal-certified-marker',
+                    iconSize: [45, 45],
+                    iconAnchor: [22, 45],
+                    popupAnchor: [0, -45]
+                });
+            }
+        }
+        
+        // Custom Icons for different place types (fallback)
+        const customIcons = {
+            establishment: L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            }),
+            hotel: L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            }),
+            prayer_facility: L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            }),
+            tourist_spot: L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-yellow.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                iconSize: [25, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34],
+                shadowSize: [41, 41]
+            }),
+            user: L.icon({
+                iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-violet.png',
+                shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+                iconSize: [35, 51],
+                iconAnchor: [17, 51],
+                popupAnchor: [1, -34],
+                shadowSize: [51, 51]
+            })
+        };
+        
+        // No mock data - all data is fetched from the database via map-api.php
+        
+        // Initialize Map
+        function initMap() {
+            // Create map centered on South Cotabato
+            map = L.map('map').setView(SOUTH_COTABATO_CENTER, 10);
+            
+            // Add OpenStreetMap tile layer (FREE)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 19
+            }).addTo(map);
+            
+            // Load places from database API
+            loadPlacesFromAPI();
+            
+            // Try to get user location automatically
+            getCurrentLocation();
+            
+            // Search functionality
+            document.getElementById('searchInput').addEventListener('input', function(e) {
+                const query = e.target.value.toLowerCase();
+                filterAndSearch(query);
+            });
+            
+            // Radius control
+            const radiusSlider = document.getElementById('radiusSlider');
+            const radiusInput = document.getElementById('radiusInput');
+            
+            radiusSlider.addEventListener('input', function() {
+                radius = parseInt(this.value);
+                radiusInput.value = radius;
+                updateRadius();
+            });
+            
+            radiusInput.addEventListener('change', function() {
+                radius = parseInt(this.value);
+                if (radius < 1) radius = 1;
+                if (radius > 50) radius = 50;
+                radiusSlider.value = radius;
+                radiusInput.value = radius;
+                updateRadius();
+            });
+        }
+        
+        // Load Places from Database API - Shows ALL establishments (no radius filter)
+        function loadPlacesFromAPI() {
+            fetch('map-api.php?type=all')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success && data.places) {
+                        // Transform database data to map format
+                        allPlaces = data.places.map(place => ({
+                            id: place.id,
+                            name: place.name,
+                            type: place.type,
+                            address: place.address,
+                            lat: place.lat,
+                            lng: place.lng,
+                            phone: place.phone,
+                            email: place.email,
+                            description: place.description,
+                            certified: place.certified, // Halal-Certified status
+                            non_certified: place.non_certified || false, // Non-Halal Certified status
+                            status_id: place.status_id || 1, // Status ID for reference
+                            has_prayer_facility: place.has_prayer_facility,
+                            distance: place.distance || null // Distance for display only
+                        }));
+                        
+                        // Show ALL places (no radius filtering)
+                        displayedPlaces = [...allPlaces];
+                        
+                        // Update displayed places
+                        displayPlaces();
+                        addMarkersToMap();
+                        
+                        // Update stats
+                        document.getElementById('statsBar').style.display = 'flex';
+                        updateStats();
+                    } else {
+                        // No data available
+                        console.warn('No establishments found in database');
+                        allPlaces = [];
+                        displayedPlaces = [];
+                        displayPlaces();
+                        addMarkersToMap();
+                        document.getElementById('statsBar').style.display = 'flex';
+                        updateStats();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading places:', error);
+                    // Show error message
+                    allPlaces = [];
+                    displayedPlaces = [];
+                    displayPlaces();
+                    addMarkersToMap();
+                    document.getElementById('statsBar').style.display = 'flex';
+                    updateStats();
+                });
+        }
+        
+        // Note: loadPlacesWithRadius function removed - we now show ALL places
+        // Radius is only used for visual reference circle, not filtering
+        
+        // Update Radius (for visual circle only, not filtering)
+        function updateRadius() {
+            if (userLocation && radiusCircle) {
+                map.removeLayer(radiusCircle);
+            }
+            
+            if (userLocation) {
+                // Show radius circle for reference only (doesn't filter results)
+                radiusCircle = L.circle([userLocation.lat, userLocation.lng], {
+                    radius: radius * 1000,
+                    fillColor: '#22c55e',
+                    fillOpacity: 0.1,
+                    color: '#16a34a',
+                    weight: 2,
+                    dashArray: '5, 5'
+                }).addTo(map);
+                
+                // Recalculate distances for all places (but show all)
+                calculateDistances();
+                showNearbyPlaces();
+            }
+        }
+        
+        // Set Custom Location
+        function setCustomLocation() {
+            const address = document.getElementById('customLocationInput').value;
+            if (!address) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Address Required',
+                    text: 'Please enter an address or use the map click feature.',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000,
+                    timerProgressBar: true
+                });
+                return;
+            }
+            
+            // Use Nominatim (OpenStreetMap geocoding) - FREE
+            Swal.fire({
+                title: 'Searching...',
+                text: 'Finding location...',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`)
+                .then(response => response.json())
+                .then(data => {
+                    Swal.close();
+                    if (data && data.length > 0) {
+                        const location = {
+                            lat: parseFloat(data[0].lat),
+                            lng: parseFloat(data[0].lon)
+                        };
+                        
+                        setUserLocation(location, data[0].display_name);
+                        
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Location Found!',
+                            text: 'Location has been set successfully.',
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 2000,
+                            timerProgressBar: true
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Location Not Found',
+                            text: 'Please try a different address.',
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 4000,
+                            timerProgressBar: true
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Geocoding error:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Error finding location. Please try again.',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 4000,
+                        timerProgressBar: true
+                    });
+                });
+        }
+        
+        // Enable Map Click Location
+        function enableMapClickLocation() {
+            mapClickMode = !mapClickMode;
+            const btn = document.getElementById('mapClickBtn');
+            
+            if (mapClickMode) {
+                btn.classList.add('active');
+                btn.innerHTML = '<i class="fas fa-times"></i> Cancel click mode';
+                map.getContainer().style.cursor = 'crosshair';
+                
+                // Add one-time click listener
+                map.once('click', function(e) {
+                    const location = {
+                        lat: e.latlng.lat,
+                        lng: e.latlng.lng
+                    };
+                    setUserLocation(location, `Custom Location (${location.lat.toFixed(6)}, ${location.lng.toFixed(6)})`);
+                    mapClickMode = false;
+                    btn.classList.remove('active');
+                    btn.innerHTML = '<i class="fas fa-mouse-pointer"></i> Click on map to set location';
+                    map.getContainer().style.cursor = '';
+                });
+            } else {
+                btn.classList.remove('active');
+                btn.innerHTML = '<i class="fas fa-mouse-pointer"></i> Click on map to set location';
+                map.getContainer().style.cursor = '';
+            }
+        }
+        
+        // Set User Location
+        function setUserLocation(location, addressName = null) {
+            userLocation = location;
+            
+            // Update status
+            const locationStatus = document.getElementById('locationStatus');
+            locationStatus.className = 'location-status success';
+            locationStatus.innerHTML = `
+                <div class="location-text">
+                    <i class="fas fa-check-circle"></i>
+                    Location Set
+                </div>
+                <div class="location-details">
+                    ${addressName || `Lat: ${userLocation.lat.toFixed(6)}, Lng: ${userLocation.lng.toFixed(6)}`}
+                </div>
+            `;
+            
+            // Update custom location input
+            if (addressName) {
+                document.getElementById('customLocationInput').value = addressName;
+            }
+            
+            // Remove old markers
+            if (userMarker) map.removeLayer(userMarker);
+            if (customLocationMarker) map.removeLayer(customLocationMarker);
+            if (radiusCircle) map.removeLayer(radiusCircle);
+            
+            // Add user marker
+            userMarker = L.marker([userLocation.lat, userLocation.lng], {
+                icon: customIcons.user
+            }).addTo(map);
+            userMarker.bindPopup('<b>Your Location</b>').openPopup();
+            
+            // Center map
+            map.setView([userLocation.lat, userLocation.lng], 13);
+            
+            // Add radius circle (visual reference only, doesn't filter)
+            radiusCircle = L.circle([userLocation.lat, userLocation.lng], {
+                radius: radius * 1000,
+                fillColor: '#22c55e',
+                fillOpacity: 0.1,
+                color: '#16a34a',
+                weight: 2,
+                dashArray: '5, 5'
+            }).addTo(map);
+            
+            // Calculate distances and show ALL places (no radius filter)
+            calculateDistances();
+            showNearbyPlaces();
+            
+            // Show stats bar
+            document.getElementById('statsBar').style.display = 'flex';
+        }
+        
+        // Get Current Location
+        function getCurrentLocation() {
+            const locationStatus = document.getElementById('locationStatus');
+            locationStatus.className = 'location-status loading';
+            locationStatus.innerHTML = `
+                <div class="location-text">
+                    <i class="fas fa-crosshairs fa-spin"></i>
+                    Detecting your location...
+                </div>
+                <div class="location-details">Please allow location access</div>
+            `;
+            
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    position => {
+                        userLocation = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                        
+                        // Update status
+                        locationStatus.className = 'location-status success';
+                        locationStatus.innerHTML = `
+                            <div class="location-text">
+                                <i class="fas fa-check-circle"></i>
+                                Location Found
+                            </div>
+                            <div class="location-details">
+                                Latitude: ${userLocation.lat.toFixed(6)}, Longitude: ${userLocation.lng.toFixed(6)}
+                            </div>
+                        `;
+                        
+                        // Add user marker
+                        if (userMarker) {
+                            map.removeLayer(userMarker);
+                        }
+                        
+                        userMarker = L.marker([userLocation.lat, userLocation.lng], {
+                            icon: customIcons.user
+                        }).addTo(map);
+                        userMarker.bindPopup('<b>Your Location</b>').openPopup();
+                        
+                        // Center map on user location
+                        map.setView([userLocation.lat, userLocation.lng], 13);
+                        
+                        // Add circle to show radius (visual reference only, doesn't filter)
+                        radiusCircle = L.circle([userLocation.lat, userLocation.lng], {
+                            radius: radius * 1000, // Convert km to meters
+                            fillColor: '#22c55e',
+                            fillOpacity: 0.1,
+                            color: '#16a34a',
+                            weight: 2,
+                            dashArray: '5, 5'
+                        }).addTo(map);
+                        
+                        // Calculate distances and show ALL places (no radius filter)
+                        calculateDistances();
+                        showNearbyPlaces();
+                        
+                        // Show stats bar
+                        document.getElementById('statsBar').style.display = 'flex';
+                    },
+                    error => {
+                        locationStatus.className = 'location-status error';
+                        locationStatus.innerHTML = `
+                            <div class="location-text">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Location Access Denied
+                            </div>
+                            <div class="location-details">
+                                Showing all establishments (halal-certified and non-halal certified)
+                            </div>
+                        `;
+                        
+                        // Show all places without distance filtering
+                        allPlaces.forEach(place => place.distance = null);
+                        displayedPlaces = [...allPlaces];
+                        displayPlaces();
+                        addMarkersToMap();
+                        
+                        // Show stats bar
+                        document.getElementById('statsBar').style.display = 'flex';
+                        updateStats();
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                );
+            } else {
+                locationStatus.className = 'location-status error';
+                locationStatus.innerHTML = `
+                    <div class="location-text">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        Geolocation Not Supported
+                    </div>
+                    <div class="location-details">
+                        Showing all halal certified establishments in South Cotabato
+                    </div>
+                `;
+                
+                // Show all places
+                allPlaces.forEach(place => place.distance = null);
+                displayedPlaces = [...allPlaces];
+                displayPlaces();
+                addMarkersToMap();
+                
+                document.getElementById('statsBar').style.display = 'flex';
+                updateStats();
+            }
+        }
+        
+        // Calculate Distances
+        function calculateDistances() {
+            if (!userLocation) return;
+            
+            allPlaces.forEach(place => {
+                const distance = map.distance(
+                    [userLocation.lat, userLocation.lng],
+                    [place.lat, place.lng]
+                ) / 1000; // Convert to km
+                place.distance = parseFloat(distance.toFixed(2));
+            });
+        }
+        
+        // Show ALL Places (no radius filtering)
+        function showNearbyPlaces() {
+            // Show ALL places regardless of location or radius
+            displayedPlaces = [...allPlaces];
+            
+            // If user location is available, sort by distance (but show all)
+            if (userLocation) {
+                displayedPlaces.sort((a, b) => {
+                    // Prioritize halal-certified, then by distance
+                    if (a.certified && !b.certified) return -1;
+                    if (!a.certified && b.certified) return 1;
+                    
+                    if (a.distance === null) return 1;
+                    if (b.distance === null) return -1;
+                    return a.distance - b.distance;
+                });
+            } else {
+                // Sort by certification status if no location
+                displayedPlaces.sort((a, b) => {
+                    if (a.certified && !b.certified) return -1;
+                    if (!a.certified && b.certified) return 1;
+                    return 0;
+                });
+            }
+            
+            displayPlaces();
+            addMarkersToMap();
+            updateStats();
+        }
+        
+        // Display Places
+        function displayPlaces() {
+            const placesList = document.getElementById('placesList');
+            placesList.innerHTML = '';
+            
+            const filteredPlaces = applyFilter(displayedPlaces);
+            
+            if (filteredPlaces.length === 0) {
+                placesList.innerHTML = `
+                    <div class="no-results">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <p>No establishments found</p>
+                        <p class="no-results-hint">Try a different search term or filter</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Add section header
+            const header = document.createElement('div');
+            header.className = 'section-header';
+            header.innerHTML = `<i class="fas fa-list"></i> ${filteredPlaces.length} Establishment${filteredPlaces.length !== 1 ? 's' : ''}`;
+            placesList.appendChild(header);
+            
+            filteredPlaces.forEach(place => {
+                const card = createPlaceCard(place);
+                placesList.appendChild(card);
+            });
+        }
+        
+        // Apply Filter
+        function applyFilter(places) {
+            if (currentFilter === 'all') return places;
+            
+            const typeMap = {
+                establishment: 'establishment',
+                hotel: 'hotel',
+                tourist_spot: 'tourist_spot',
+                prayer_facility: 'prayer_facility'
+            };
+            
+            return places.filter(place => place.type === typeMap[currentFilter]);
+        }
+        
+        // Create Place Card
+        function createPlaceCard(place) {
+            const card = document.createElement('div');
+            card.className = 'place-card';
+            card.dataset.id = place.id;
+            
+            const typeIcons = {
+                establishment: 'fas fa-store',
+                hotel: 'fas fa-hotel',
+                prayer_facility: 'fas fa-mosque',
+                tourist_spot: 'fas fa-mountain'
+            };
+            
+            const typeLabels = {
+                establishment: 'Establishment',
+                hotel: 'Hotel',
+                prayer_facility: 'Prayer Facility',
+                tourist_spot: 'Tourist Spot'
+            };
+            
+            const distanceText = place.distance !== null 
+                ? `<div class="place-distance">
+                     <i class="fas fa-route"></i>
+                     ${place.distance} km away
+                   </div>`
+                : '';
+            
+            card.innerHTML = `
+                <div class="place-header">
+                    <div>
+                        <div class="place-title">
+                            ${place.name}
+                            ${place.certified ? '<span class="certified-badge"><i class="fas fa-certificate"></i> Halal Certified</span>' : 
+                              '<span class="non-certified-badge"><i class="fas fa-info-circle"></i> Non-Halal Certified</span>'}
+                        </div>
+                        <span class="place-type">
+                            <i class="${typeIcons[place.type]}"></i>
+                            ${typeLabels[place.type]}
+                        </span>
+                    </div>
+                </div>
+                <div class="place-address">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>${place.address}</span>
+                </div>
+                <div class="place-details">
+                    ${distanceText}
+                    ${userLocation ? `
+                        <button onclick="event.stopPropagation(); showRoute(${place.id});" class="btn-route">
+                            <i class="fas fa-route"></i> Route
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+            
+            card.addEventListener('click', () => {
+                selectPlace(place);
+            });
+            
+            return card;
+        }
+        
+        // Add Markers to Map
+        function addMarkersToMap() {
+            // Clear existing markers
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+            
+            const filteredPlaces = applyFilter(displayedPlaces);
+            
+            filteredPlaces.forEach(place => {
+                // Use custom icon based on certification status
+                const icon = place.certified 
+                    ? createHalalIcon(place.type, true)
+                    : createHalalIcon(place.type, false); // Non-halal certified with info badge
+                
+                const marker = L.marker([place.lat, place.lng], {
+                    icon: icon
+                }).addTo(map);
+                
+                const popupContent = `
+                    <div class="popup-content">
+                        <div class="popup-title">
+                            ${place.name}
+                            ${place.certified ? '<span class="popup-certified-badge"><i class="fas fa-certificate"></i> Halal Certified</span>' : 
+                              '<span class="popup-non-certified-badge"><i class="fas fa-info-circle"></i> Non-Halal Certified</span>'}
+                        </div>
+                        <div class="popup-address">${place.address}</div>
+                        ${place.distance !== null ? `<div class="popup-distance"><i class="fas fa-route"></i> ${place.distance} km away</div>` : ''}
+                        <div class="popup-actions">
+                            <button onclick="showPlaceDetails(${place.id}); showRoute(${place.id});" class="popup-btn-details">
+                                <i class="fas fa-info-circle"></i> Details & Route
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                marker.bindPopup(popupContent);
+                
+                marker.on('click', () => {
+                    selectPlace(place);
+                });
+                
+                markers.push(marker);
+            });
+        }
+        
+        // Select Place - Automatically routes when clicking a card
+        function selectPlace(place) {
+            selectedPlace = place;
+            
+            // Update active card
+            document.querySelectorAll('.place-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            document.querySelector(`.place-card[data-id="${place.id}"]`)?.classList.add('active');
+            
+            // Center map on place
+            map.setView([place.lat, place.lng], 15);
+            
+            // Open popup
+            markers.forEach(marker => {
+                if (marker.getLatLng().lat === place.lat && marker.getLatLng().lng === place.lng) {
+                    marker.openPopup();
+                }
+            });
+            
+            // Show details panel
+            showPlaceDetails(place.id);
+            
+            // Automatically show route if user location is available
+            if (userLocation) {
+                showRoute(place.id);
+            }
+        }
+        
+        // Show Place Details
+        function showPlaceDetails(placeId) {
+            const place = allPlaces.find(p => p.id === placeId);
+            if (!place) return;
+            
+            // Create or update details panel
+            let detailsPanel = document.getElementById('detailsPanel');
+            if (!detailsPanel) {
+                detailsPanel = document.createElement('div');
+                detailsPanel.id = 'detailsPanel';
+                detailsPanel.className = 'details-panel';
+                document.querySelector('.main-container').appendChild(detailsPanel);
+            }
+            
+            const typeLabels = {
+                establishment: 'Establishment',
+                hotel: 'Hotel',
+                prayer_facility: 'Prayer Facility',
+                tourist_spot: 'Tourist Spot'
+            };
+            
+            detailsPanel.innerHTML = `
+                <div class="details-panel-content">
+                    <div class="details-panel-header">
+                        <div>
+                            <h3 class="details-panel-title">
+                                ${place.name}
+                                ${place.certified ? '<span class="details-certified-badge"><i class="fas fa-certificate"></i> Halal Certified</span>' : 
+                                  '<span class="details-non-certified-badge"><i class="fas fa-info-circle"></i> Non-Halal Certified</span>'}
+                            </h3>
+                            <p class="details-panel-type">${typeLabels[place.type] || place.type}</p>
+                        </div>
+                        <button onclick="closeDetailsPanel()" class="details-panel-close">&times;</button>
+                    </div>
+                    
+                    <div class="details-panel-description">
+                        <p>
+                            <strong>Description:</strong><br>
+                            ${place.description || 'No description available.'}
+                        </p>
+                    </div>
+                    
+                    <div class="details-panel-address">
+                        <p>
+                            <i class="fas fa-map-marker-alt"></i>
+                            <strong>Address:</strong> ${place.address}
+                        </p>
+                        ${place.distance !== null ? `
+                            <p class="details-panel-distance">
+                                <i class="fas fa-route"></i> ${place.distance} km away
+                            </p>
+                        ` : ''}
+                    </div>
+                    
+                    ${place.phone || place.email ? `
+                        <div class="details-panel-contact">
+                            <strong>Contact Information:</strong>
+                            ${place.phone ? `
+                                <p>
+                                    <i class="fas fa-phone"></i> ${place.phone}
+                                </p>
+                            ` : ''}
+                            ${place.email ? `
+                                <p>
+                                    <i class="fas fa-envelope"></i> ${place.email}
+                                </p>
+                            ` : ''}
+                        </div>
+                    ` : ''}
+                    
+                    <div class="details-panel-buttons">
+                        ${userLocation ? `
+                            <button onclick="showRoute(${place.id})" class="btn-get-directions">
+                                <i class="fas fa-route"></i> Get Directions
+                            </button>
+                        ` : `
+                            <button onclick="getCurrentLocation(); setTimeout(() => showRoute(${place.id}), 1000);" class="btn-get-directions">
+                                <i class="fas fa-location-arrow"></i> Enable Location for Route
+                            </button>
+                        `}
+                        <button onclick="closeDetailsPanel()" class="btn-close-panel">
+                            Close
+                        </button>
+                    </div>
+                    
+                    <div class="details-panel-footer">
+                        <p>
+                            <i class="fas fa-info-circle"></i> Want to add your establishment? 
+                            <a href="../../registration/company.php" target="_blank">Register here</a>
+                        </p>
+                    </div>
+                </div>
+            `;
+            
+            detailsPanel.style.display = 'block';
+            detailsPanel.classList.add('active');
+        }
+        
+        // Close Details Panel
+        function closeDetailsPanel() {
+            const detailsPanel = document.getElementById('detailsPanel');
+            if (detailsPanel) {
+                detailsPanel.classList.remove('active');
+                setTimeout(() => {
+                    detailsPanel.style.display = 'none';
+                }, 300);
+            }
+        }
+        
+        // Show Route
+        function showRoute(placeId) {
+            const place = allPlaces.find(p => p.id === placeId);
+            if (!place || !userLocation) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Location Required',
+                    text: 'Please enable location services to get directions.',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 4000,
+                    timerProgressBar: true
+                });
+                return;
+            }
+            
+            // Remove existing routing control
+            if (routingControl) {
+                map.removeControl(routingControl);
+            }
+            
+            // Create new routing control
+            routingControl = L.Routing.control({
+                waypoints: [
+                    L.latLng(userLocation.lat, userLocation.lng),
+                    L.latLng(place.lat, place.lng)
+                ],
+                router: L.Routing.osrmv1({
+                    serviceUrl: 'https://router.project-osrm.org/route/v1',
+                    profile: 'driving'
+                }),
+                routeWhileDragging: false,
+                lineOptions: {
+                    styles: [{color: '#22c55e', weight: 5, opacity: 0.85}]
+                },
+                createMarker: function(i, waypoint, n) {
+                    if (i === 0) {
+                        // Start marker (user location)
+                        return L.marker(waypoint.latLng, {icon: customIcons.user});
+                    } else {
+                        // End marker (destination)
+                        return L.marker(waypoint.latLng, {
+                            icon: createHalalIcon(place.type, place.certified)
+                        });
+                    }
+                },
+                addWaypoints: false,
+                draggableWaypoints: false
+            }).addTo(map);
+            
+            // Show details panel
+            showPlaceDetails(placeId);
+            
+            // Center map to show entire route
+            setTimeout(() => {
+                map.fitBounds([
+                    [userLocation.lat, userLocation.lng],
+                    [place.lat, place.lng]
+                ], {padding: [50, 50]});
+            }, 500);
+        }
+        
+        // Filter Places
+        function filterPlaces(type) {
+            currentFilter = type;
+            
+            // Update button states
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`.filter-btn[data-type="${type}"]`).classList.add('active');
+            
+            displayPlaces();
+            addMarkersToMap();
+            updateStats();
+        }
+        
+        // Filter and Search
+        function filterAndSearch(query) {
+            const filtered = displayedPlaces.filter(place => 
+                place.name.toLowerCase().includes(query) ||
+                place.address.toLowerCase().includes(query) ||
+                place.type.toLowerCase().includes(query)
+            );
+            
+            const placesList = document.getElementById('placesList');
+            placesList.innerHTML = '';
+            
+            if (filtered.length === 0) {
+                placesList.innerHTML = `
+                    <div class="no-results">
+                        <i class="fas fa-search"></i>
+                        <p>No results found</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const header = document.createElement('div');
+            header.className = 'section-header';
+            header.innerHTML = `<i class="fas fa-search"></i> ${filtered.length} Result${filtered.length !== 1 ? 's' : ''}`;
+            placesList.appendChild(header);
+            
+            filtered.forEach(place => {
+                const card = createPlaceCard(place);
+                placesList.appendChild(card);
+            });
+        }
+        
+        // Update Stats
+        function updateStats() {
+            const filteredPlaces = applyFilter(displayedPlaces);
+            const halalCertified = filteredPlaces.filter(p => p.certified).length;
+            
+            document.getElementById('totalCount').textContent = filteredPlaces.length;
+            document.getElementById('halalCount').textContent = halalCertified;
+            document.getElementById('radiusDisplay').textContent = radius;
+            
+            // Show radius stat item only if user location is available
+            const radiusStatItem = document.getElementById('radiusStatItem');
+            if (userLocation) {
+                radiusStatItem.style.display = 'flex';
+            } else {
+                radiusStatItem.style.display = 'none';
+            }
+        }
+        
+        // Handle back button click based on return parameter
+        function handleBackClick(event) {
+            event.preventDefault();
+            const urlParams = new URLSearchParams(window.location.search);
+            const returnPage = urlParams.get('return');
+            
+            if (returnPage === 'tourist') {
+                window.location.href = '../../tourist/index.php';
+            } else {
+                window.location.href = '../../home.php';
+            }
+        }
+        
+        // Update back button text and href on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const returnPage = urlParams.get('return');
+            const backBtn = document.getElementById('backBtn');
+            const backBtnText = document.getElementById('backBtnText');
+            
+            if (returnPage === 'tourist') {
+                backBtnText.textContent = 'Back to Tourist Dashboard';
+            } else {
+                backBtnText.textContent = 'Back to Home';
+            }
+        });
+        
+        // Initialize on page load
+        window.addEventListener('load', initMap);
+    </script>
+</body>
+</html>

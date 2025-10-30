@@ -1,0 +1,27 @@
+/* Print stylesheet for clean outputs */
+@media print {
+  body { background: #fff !important; }
+  .no-print { display: none !important; }
+  @page { size: A4; margin: 16mm 12mm; }
+  .print-export-container { padding: 0 !important; }
+}
+
+.print-export-container table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.print-export-container table th,
+.print-export-container table td {
+  border: 1px solid #e5e7eb;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+.print-export-container h1,
+.print-export-container h2,
+.print-export-container h3 {
+  margin: 8px 0;
+}
+
+

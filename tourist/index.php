@@ -41,129 +41,7 @@ $company_user_row = mysqli_fetch_assoc($company_user_query);
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="../assets2/css/style.css">
-    
-    <style>
-        /* User Dropdown Styles */
-        .user-dropdown {
-            position: relative;
-            display: inline-block;
-        }
-        
-        .user-btn {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 16px;
-            background: linear-gradient(135deg, #2ECC71 0%, #27AE60 100%);
-            color: white;
-            border: none;
-            border-radius: 25px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-family: 'Poppins', sans-serif;
-        }
-        
-        .user-btn:hover {
-            background: linear-gradient(135deg, #27AE60 0%, #229954 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(46, 204, 113, 0.4);
-        }
-        
-        .user-btn i:first-child {
-            font-size: 18px;
-        }
-        
-        .user-btn i:last-child {
-            font-size: 12px;
-            transition: transform 0.3s ease;
-        }
-        
-        .user-btn.active i:last-child {
-            transform: rotate(180deg);
-        }
-        
-        .dropdown-menu {
-            position: absolute;
-            top: 100%;
-            right: 0;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-            min-width: 200px;
-            opacity: 0;
-            visibility: hidden;
-            transform: translateY(-10px);
-            transition: all 0.3s ease;
-            z-index: 1000;
-            border: 1px solid #e0e0e0;
-        }
-        
-        .dropdown-menu.show {
-            opacity: 1;
-            visibility: visible;
-            transform: translateY(0);
-        }
-        
-        .dropdown-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 12px 16px;
-            color: #333;
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            border-bottom: 1px solid #f0f0f0;
-        }
-        
-        .dropdown-item:last-child {
-            border-bottom: none;
-        }
-        
-        .dropdown-item:hover {
-            background: #f8f9fa;
-            color: #2ECC71;
-        }
-        
-        .dropdown-item.logout:hover {
-            background: #ffe6e6;
-            color: #dc3545;
-        }
-        
-        .dropdown-item i {
-            width: 16px;
-            text-align: center;
-        }
-        
-        .dropdown-divider {
-            height: 1px;
-            background: #e0e0e0;
-            margin: 8px 0;
-        }
-        
-        /* Mobile Responsive */
-        @media (max-width: 768px) {
-            .user-btn span {
-                display: none;
-            }
-            
-            .user-btn {
-                padding: 10px;
-                border-radius: 50%;
-                width: 40px;
-                height: 40px;
-                justify-content: center;
-            }
-            
-            .dropdown-menu {
-                right: -10px;
-                min-width: 180px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="css/tourist-common.css">
 </head>
 <body>
     
@@ -178,8 +56,9 @@ $company_user_row = mysqli_fetch_assoc($company_user_query);
                 
                 <div class="nav-menu" id="navMenu">
                     <ul class="nav-links">
-                        <li><a href="#home" class="nav-link active">Home</a></li>
+                        <li><a href="#home" class="nav-link">Home</a></li>
                         <li><a href="#services" class="nav-link">Services</a></li>
+                        <li><a href="../pages/map/map.html?return=tourist" class="nav-link">Halal Certified Near Me</a></li>
                         <li><a href="#about" class="nav-link">About</a></li>
                         <li><a href="#testimonials" class="nav-link">Reviews</a></li>
                         <li><a href="#contact" class="nav-link">Contact</a></li>
@@ -201,7 +80,7 @@ $company_user_row = mysqli_fetch_assoc($company_user_query);
                                     <span>Settings</span>
                                 </a>
                                 <div class="dropdown-divider"></div>
-                                <a href="?logout=1" class="dropdown-item logout">
+                                <a href="../home.php" class="dropdown-item logout">
                                     <i class="fas fa-sign-out-alt"></i>
                                     <span>Logout</span>
                                 </a>
@@ -290,7 +169,7 @@ $company_user_row = mysqli_fetch_assoc($company_user_query);
                             <li><i class="fas fa-check"></i> Authentic Reviews</li>
                             <li><i class="fas fa-check"></i> Menu Details</li>
                         </ul>
-                        <a href="#" class="btn-service">View Establishments</a>
+                        <a href="establishments.php" class="btn-service">View Establishments</a>
                     </div>
                 </div>
                 
@@ -307,7 +186,7 @@ $company_user_row = mysqli_fetch_assoc($company_user_query);
                             <li><i class="fas fa-check"></i> Halal Food Options</li>
                             <li><i class="fas fa-check"></i> Qibla Direction</li>
                         </ul>
-                        <a href="#" class="btn-service">Find Hotels</a>
+                        <a href="hotels.php" class="btn-service">Find Hotels</a>
                     </div>
                 </div>
                 
@@ -324,7 +203,7 @@ $company_user_row = mysqli_fetch_assoc($company_user_query);
                             <li><i class="fas fa-check"></i> Cultural Experiences</li>
                             <li><i class="fas fa-check"></i> Guided Tours Available</li>
                         </ul>
-                        <a href="#" class="btn-service">Discover Places</a>
+                        <a href="tourist-spots.php" class="btn-service">Discover Places</a>
                     </div>
                 </div>
                 
@@ -341,7 +220,7 @@ $company_user_row = mysqli_fetch_assoc($company_user_query);
                             <li><i class="fas fa-check"></i> Nearby Mosques</li>
                             <li><i class="fas fa-check"></i> Prayer Room Locations</li>
                         </ul>
-                        <a href="#" class="btn-service">Find Prayer Rooms</a>
+                        <a href="prayer-facilities.php" class="btn-service">Find Prayer Rooms</a>
                     </div>
                 </div>
             </div>
@@ -685,23 +564,64 @@ $company_user_row = mysqli_fetch_assoc($company_user_query);
     <script src="../assets2/js/main.js"></script>
     
     <script>
-        // User Dropdown Functionality
+        // Immediately override alert for service-related messages (before page loads)
+        const originalAlert = window.alert;
+        let alertBlocked = false;
+        
+        // Override service button handlers - remove all click interceptors
         document.addEventListener('DOMContentLoaded', function() {
+            // Remove all event listeners from service buttons
+            setTimeout(function() {
+                const serviceButtons = document.querySelectorAll('.btn-service');
+                serviceButtons.forEach(button => {
+                    // Clone to remove all event listeners attached by other scripts
+                    const parent = button.parentNode;
+                    const href = button.getAttribute('href'); // Preserve href
+                    const classes = button.getAttribute('class'); // Preserve classes
+                    const text = button.textContent; // Preserve text
+                    
+                    // Create new button that works as normal link
+                    const newButton = document.createElement('a');
+                    newButton.href = href;
+                    newButton.className = classes;
+                    newButton.textContent = text;
+                    
+                    parent.replaceChild(newButton, button);
+                });
+            }, 100);
+        });
+        
+        // Also override on window load (after all scripts)
+        window.addEventListener('load', function() {
+            const serviceButtons = document.querySelectorAll('.btn-service');
+            serviceButtons.forEach(button => {
+                // Force normal link behavior
+                button.setAttribute('data-no-intercept', 'true');
+            });
+        });
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // User Dropdown Functionality
             const userBtn = document.getElementById('userBtn');
             const dropdownMenu = document.getElementById('dropdownMenu');
             
             // Toggle dropdown
-            userBtn.addEventListener('click', function(e) {
-                e.stopPropagation();
-                dropdownMenu.classList.toggle('show');
-                userBtn.classList.toggle('active');
-            });
+            if (userBtn) {
+                userBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    dropdownMenu.classList.toggle('show');
+                    userBtn.classList.toggle('active');
+                });
+            }
             
             // Close dropdown when clicking outside
             document.addEventListener('click', function(e) {
-                if (!userBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
-                    dropdownMenu.classList.remove('show');
-                    userBtn.classList.remove('active');
+                if (userBtn && dropdownMenu) {
+                    if (!userBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
+                        dropdownMenu.classList.remove('show');
+                        userBtn.classList.remove('active');
+                    }
                 }
             });
             
@@ -709,8 +629,12 @@ $company_user_row = mysqli_fetch_assoc($company_user_query);
             const dropdownItems = document.querySelectorAll('.dropdown-item');
             dropdownItems.forEach(item => {
                 item.addEventListener('click', function() {
-                    dropdownMenu.classList.remove('show');
-                    userBtn.classList.remove('active');
+                    if (dropdownMenu) {
+                        dropdownMenu.classList.remove('show');
+                    }
+                    if (userBtn) {
+                        userBtn.classList.remove('active');
+                    }
                 });
             });
         });

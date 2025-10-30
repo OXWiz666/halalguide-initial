@@ -1,3 +1,12 @@
+<?php
+session_start();
+// Handle logout ONLY when explicitly requested with ?logout=1 parameter
+if (isset($_GET['logout']) && $_GET['logout'] == '1') {
+    session_unset();
+    session_destroy();
+}
+// Otherwise, session is preserved - users stay logged in when viewing home.php
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,6 +27,9 @@
     <!-- AOS Animation -->
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    
     <!-- Custom CSS -->
     <link rel="stylesheet" href="assets2/css/style.css">
 </head>
@@ -36,6 +48,7 @@
                     <ul class="nav-links">
                         <li><a href="#home" class="nav-link active">Home</a></li>
                         <li><a href="#services" class="nav-link">Services</a></li>
+                        <li><a href="pages/map/map.html" class="nav-link">Halal Certified Near Me</a></li>
                         <li><a href="#about" class="nav-link">About</a></li>
                         <li><a href="#testimonials" class="nav-link">Reviews</a></li>
                         <li><a href="#contact" class="nav-link">Contact</a></li>
@@ -126,7 +139,7 @@
                             <li><i class="fas fa-check"></i> Authentic Reviews</li>
                             <li><i class="fas fa-check"></i> Menu Details</li>
                         </ul>
-                        <a href="#" class="btn-service">View Establishments</a>
+                        <a href="pages/Halal Map/map.html" class="btn-service">View Map</a>
                     </div>
                 </div>
                 
@@ -143,7 +156,7 @@
                             <li><i class="fas fa-check"></i> Halal Food Options</li>
                             <li><i class="fas fa-check"></i> Qibla Direction</li>
                         </ul>
-                        <a href="#" class="btn-service">Find Hotels</a>
+                        <a href="pages/Halal Map/map.html" class="btn-service">Find Hotels</a>
                     </div>
                 </div>
                 
@@ -160,7 +173,7 @@
                             <li><i class="fas fa-check"></i> Cultural Experiences</li>
                             <li><i class="fas fa-check"></i> Guided Tours Available</li>
                         </ul>
-                        <a href="#" class="btn-service">Discover Places</a>
+                        <a href="pages/Halal Map/map.html" class="btn-service">Discover Places</a>
                     </div>
                 </div>
                 
@@ -177,7 +190,7 @@
                             <li><i class="fas fa-check"></i> Nearby Mosques</li>
                             <li><i class="fas fa-check"></i> Prayer Room Locations</li>
                         </ul>
-                        <a href="#" class="btn-service">Find Prayer Rooms</a>
+                        <a href="pages/Halal Map/map.html" class="btn-service">Find Prayer Rooms</a>
                     </div>
                 </div>
             </div>
@@ -516,6 +529,9 @@
 
     <!-- AOS Animation JS -->
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <!-- Custom JS -->
     <script src="assets2/js/main.js"></script>

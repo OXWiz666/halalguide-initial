@@ -55,7 +55,12 @@
       min-height: 100vh;
       background: linear-gradient(135deg, #2ECC71 0%, #27AE60 100%);
       position: relative;
-      padding: 40px 20px;
+      padding: 15px;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
     }
 
     /* Animated Background */
@@ -110,6 +115,13 @@
       max-width: 450px;
       margin: 0 auto;
       animation: slideUp 0.6s ease-out;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .login-card {
+      margin-bottom: 0;
     }
 
     @keyframes slideUp {
@@ -127,7 +139,7 @@
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(10px);
       border-radius: 20px;
-      padding: 40px;
+      padding: 30px 35px 25px 35px;
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
       transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
@@ -139,18 +151,18 @@
 
     .logo-section {
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 20px;
     }
 
     .logo-icon {
-      width: 80px;
-      height: 80px;
+      width: 70px;
+      height: 70px;
       background: linear-gradient(135deg, #2ECC71 0%, #27AE60 100%);
-      border-radius: 20px;
+      border-radius: 18px;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 15px;
+      margin-bottom: 10px;
       box-shadow: 0 10px 30px rgba(46, 204, 113, 0.4);
       animation: bounce 2s infinite;
     }
@@ -165,35 +177,35 @@
     }
 
     .logo-icon i {
-      font-size: 40px;
+      font-size: 35px;
       color: white;
     }
 
     .logo-text {
-      font-size: 32px;
+      font-size: 28px;
       font-weight: 700;
       background: linear-gradient(135deg, #2ECC71 0%, #27AE60 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      margin-bottom: 5px;
+      margin-bottom: 3px;
     }
 
     .logo-subtitle {
-      font-size: 14px;
+      font-size: 13px;
       color: #666;
       font-weight: 400;
     }
 
     .welcome-text {
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 20px;
     }
 
     .welcome-text h3 {
-      font-size: 24px;
+      font-size: 22px;
       font-weight: 600;
       color: #333;
-      margin-bottom: 5px;
+      margin-bottom: 3px;
     }
 
     .welcome-text p {
@@ -202,13 +214,13 @@
     }
 
     .form-group {
-      margin-bottom: 20px;
+      margin-bottom: 16px;
       position: relative;
     }
 
     .form-label {
       display: block;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       font-size: 14px;
       font-weight: 500;
       color: #333;
@@ -266,7 +278,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 25px;
+      margin-bottom: 18px;
       font-size: 14px;
     }
 
@@ -357,7 +369,7 @@
 
     .divider {
       text-align: center;
-      margin: 25px 0;
+      margin: 15px 0 10px 0;
       position: relative;
     }
 
@@ -381,14 +393,37 @@
 
     .register-links {
       text-align: center;
-      margin-top: 20px;
+      margin-top: 5px;
+      margin-bottom: 0;
     }
 
     .register-link {
       display: block;
-      margin-bottom: 10px;
+      margin-bottom: 0;
       font-size: 14px;
       color: #666;
+      padding-bottom: 0;
+    }
+
+    .register-link.company-link {
+      margin-top: 18px;
+      padding-top: 18px;
+      border-top: 1px solid #e0e0e0;
+    }
+
+    .register-link .company-text {
+      display: block;
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .register-link.company-link a {
+      color: #2ECC71;
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.3s ease;
     }
 
     .register-link a {
@@ -399,12 +434,15 @@
     }
 
     .register-link a:hover {
-      color: #27AE60;
+      color: #2ECC71;
     }
+
 
     .back-home {
       text-align: center;
       margin-top: 20px;
+      margin-bottom: 0;
+      padding-top: 0;
     }
 
     .back-home a {
@@ -429,11 +467,11 @@
     /* Responsive */
     @media (max-width: 480px) {
       body {
-        padding: 20px 10px;
+        padding: 15px 10px;
       }
       
       .login-card {
-        padding: 30px 20px;
+        padding: 30px 20px 25px 20px;
       }
 
       .logo-text {
@@ -545,8 +583,12 @@
         <div class="register-link">
           <i class="fas fa-user-plus"></i> <a href="registration.php">Register Here</a>
         </div>
-          </div>
-          </div>
+        <div class="register-link company-link">
+          <span class="company-text">Are you a company?</span>
+          <i class="fas fa-building"></i> <a href="company/company.php">Register as Company</a>
+        </div>
+      </div>
+    </div>
 
     <!-- Back to Home -->
     <div class="back-home">

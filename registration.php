@@ -59,58 +59,93 @@ if (isset($_POST['btnRegister']) || (isset($_POST['username']) && isset($_POST['
         $errors[] = "Please enter a valid email address.";
     }
     
+    // Validate phone number format (should be 11 digits starting with 09)
+    if (!empty($contact_no) && !preg_match('/^09[0-9]{9}$/', $contact_no)) {
+        $errors[] = "Please enter a valid 11-digit phone number starting with 09.";
+    }
+    
     // Check if username already exists
     $check_username = mysqli_query($conn, "SELECT username FROM tbl_useraccount WHERE username = '$username'");
     if (mysqli_num_rows($check_username) > 0) {
         $errors[] = "Username already exists. Please choose another.";
     }
     
-    // Check if email already exists
-    $check_email = mysqli_query($conn, "SELECT email FROM tbl_tourist WHERE email = '$email'");
-    if (mysqli_num_rows($check_email) > 0) {
+    // Check if email already exists in multiple tables
+    $check_tourist_email = mysqli_query($conn, "SELECT email FROM tbl_tourist WHERE email = '$email'");
+    if (mysqli_num_rows($check_tourist_email) > 0) {
         $errors[] = "Email already registered. Please use another email.";
+    }
+    
+    $check_company_email = mysqli_query($conn, "SELECT email FROM tbl_company WHERE email = '$email'");
+    if (mysqli_num_rows($check_company_email) > 0) {
+        $errors[] = "Email already registered. Please use another email.";
+    }
+    
+    $check_admin_email = mysqli_query($conn, "SELECT email FROM tbl_admin WHERE email = '$email'");
+    if (mysqli_num_rows($check_admin_email) > 0) {
+        $errors[] = "Email already registered. Please use another email.";
+    }
+    
+    $check_company_user_email = mysqli_query($conn, "SELECT email FROM tbl_company_user WHERE email = '$email' AND email IS NOT NULL AND email != ''");
+    if (mysqli_num_rows($check_company_user_email) > 0) {
+        $errors[] = "Email already registered. Please use another email.";
+    }
+    
+    // Check if phone number already exists in multiple tables
+    $check_phone_tourist = mysqli_query($conn, "SELECT contact_no FROM tbl_tourist WHERE contact_no = '$contact_no'");
+    if (mysqli_num_rows($check_phone_tourist) > 0) {
+        $errors[] = "Phone number already registered. Please use another phone number.";
+    }
+    
+    $check_phone_company = mysqli_query($conn, "SELECT contant_no FROM tbl_company WHERE contant_no = '$contact_no'");
+    if (mysqli_num_rows($check_phone_company) > 0) {
+        $errors[] = "Phone number already registered. Please use another phone number.";
+    }
+    
+    $check_phone_company_user = mysqli_query($conn, "SELECT contact_no FROM tbl_company_user WHERE contact_no = '$contact_no'");
+    if (mysqli_num_rows($check_phone_company_user) > 0) {
+        $errors[] = "Phone number already registered. Please use another phone number.";
+    }
+    
+    $check_phone_company_person = mysqli_query($conn, "SELECT contact_no FROM tbl_company_person WHERE contact_no = '$contact_no'");
+    if (mysqli_num_rows($check_phone_company_person) > 0) {
+        $errors[] = "Phone number already registered. Please use another phone number.";
+    }
+    
+    $check_phone_admin = mysqli_query($conn, "SELECT contact_no FROM tbl_admin WHERE contact_no = '$contact_no'");
+    if (mysqli_num_rows($check_phone_admin) > 0) {
+        $errors[] = "Phone number already registered. Please use another phone number.";
     }
 
     if (empty($errors)) {
+        // Start session if not already started
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        // Generate IDs
         $currentDateTime = date('Y-m-d H:i:s');
         $tourist_id = "TR" . generate_string($specialcasesCHAR, 15);
         $useraccount_id = "UA" . generate_string($specialcasesCHAR, 15);
 
-        // Start transaction
-        mysqli_autocommit($conn, FALSE);
+        // Store registration data in session for verification
+        $_SESSION['pending_registration'] = [
+            'user_type' => 'Tourist',
+            'tourist_id' => $tourist_id,
+            'useraccount_id' => $useraccount_id,
+            'firstname' => $firstname,
+            'middlename' => $middlename,
+            'lastname' => $lastname,
+            'gender' => $gender,
+            'contact_no' => $contact_no,
+            'email' => $email,
+            'username' => $username,
+            'password' => $password
+        ];
         
-        try {
-            // Insert tourist record
-            $insert_tourist = mysqli_query($conn, "INSERT INTO tbl_tourist (tourist_id, firstname, middlename, lastname, gender, contact_no, email, status_id, date_added)
-                VALUES ('$tourist_id', '$firstname', '$middlename', '$lastname', '$gender', '$contact_no', '$email', 
-                (SELECT status_id FROM tbl_status WHERE status = 'Active'), '$currentDateTime')");
-            
-            if (!$insert_tourist) {
-                throw new Exception("Failed to create tourist record: " . mysqli_error($conn));
-            }
-
-            // Insert user account
-            $insert_tourist_acc = mysqli_query($conn, "INSERT INTO tbl_useraccount (useraccount_id, username, password, tourist_id, usertype_id, status_id, date_added)
-                VALUES ('$useraccount_id', '$username', '$password', '$tourist_id', 
-                (SELECT usertype_id FROM tbl_usertype WHERE usertype = 'Tourist'),
-                (SELECT status_id FROM tbl_status WHERE status = 'Active'), '$currentDateTime')");
-            
-            if (!$insert_tourist_acc) {
-                throw new Exception("Failed to create user account: " . mysqli_error($conn));
-            }
-            
-            // Commit transaction
-            mysqli_commit($conn);
-            $success = true;
-            
-        } catch (Exception $e) {
-            // Rollback transaction
-            mysqli_rollback($conn);
-            $error = "Registration failed: " . $e->getMessage();
-        }
-        
-        // Restore autocommit
-        mysqli_autocommit($conn, TRUE);
+        // Redirect to phone verification
+        header('Location: common/verify-phone.php');
+        exit;
         
     } else {
         $error = implode("<br>", $errors);
@@ -145,9 +180,14 @@ if (isset($_POST['btnRegister']) || (isset($_POST['username']) && isset($_POST['
       font-family: 'Poppins', sans-serif;
       min-height: 100vh;
       background: linear-gradient(135deg, #2ECC71 0%, #27AE60 100%);
-      padding: 40px 20px;
+      padding: 15px;
+      margin: 0;
       position: relative;
       overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
     }
 
     body::before {
@@ -170,11 +210,18 @@ if (isset($_POST['btnRegister']) || (isset($_POST['username']) && isset($_POST['
 
     .register-container {
       position: relative;
-      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
       width: 100%;
-      max-width: 700px;
+      max-width: 900px;
+      z-index: 1;
       margin: 0 auto;
       animation: slideUp 0.6s ease-out;
+    }
+
+    .register-card {
+      margin-bottom: 0;
     }
 
     @keyframes slideUp {
@@ -192,13 +239,13 @@ if (isset($_POST['btnRegister']) || (isset($_POST['username']) && isset($_POST['
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(10px);
       border-radius: 20px;
-      padding: 40px;
+      padding: 30px 35px 25px 35px;
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     }
 
     .logo-section {
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 20px;
     }
 
     .logo-icon {
@@ -209,7 +256,7 @@ if (isset($_POST['btnRegister']) || (isset($_POST['username']) && isset($_POST['
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      margin-bottom: 15px;
+      margin-bottom: 10px;
       box-shadow: 0 10px 30px rgba(46, 204, 113, 0.4);
       animation: bounce 2s infinite;
     }
@@ -230,7 +277,7 @@ if (isset($_POST['btnRegister']) || (isset($_POST['username']) && isset($_POST['
       background: linear-gradient(135deg, #2ECC71 0%, #27AE60 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      margin-bottom: 5px;
+      margin-bottom: 3px;
     }
 
     .logo-subtitle {
@@ -241,14 +288,14 @@ if (isset($_POST['btnRegister']) || (isset($_POST['username']) && isset($_POST['
 
     .welcome-text {
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 20px;
     }
 
     .welcome-text h3 {
-      font-size: 24px;
+      font-size: 22px;
       font-weight: 600;
       color: #333;
-      margin-bottom: 5px;
+      margin-bottom: 3px;
     }
 
     .welcome-text p {
@@ -260,12 +307,16 @@ if (isset($_POST['btnRegister']) || (isset($_POST['username']) && isset($_POST['
       font-size: 16px;
       font-weight: 600;
       color: #2ECC71;
-      margin-bottom: 15px;
-      padding-bottom: 10px;
-      border-bottom: 2px solid #FFE5CC;
+      margin: 20px 0 12px 0;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e0e0e0;
       display: flex;
       align-items: center;
       gap: 10px;
+    }
+
+    .form-section-title:first-of-type {
+      margin-top: 0;
     }
 
     .form-section-title i {
@@ -273,12 +324,12 @@ if (isset($_POST['btnRegister']) || (isset($_POST['username']) && isset($_POST['
     }
 
     .form-group {
-      margin-bottom: 20px;
+      margin-bottom: 16px;
     }
 
     .form-label {
       display: block;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       font-size: 14px;
       font-weight: 500;
       color: #333;
@@ -430,7 +481,7 @@ if (isset($_POST['btnRegister']) || (isset($_POST['username']) && isset($_POST['
 
     .divider {
       text-align: center;
-      margin: 25px 0;
+      margin: 15px 0 10px 0;
       position: relative;
     }
 
@@ -454,14 +505,16 @@ if (isset($_POST['btnRegister']) || (isset($_POST['username']) && isset($_POST['
 
     .links {
       text-align: center;
-      margin-top: 20px;
+      margin-top: 5px;
+      margin-bottom: 0;
     }
 
     .link-item {
       display: block;
-      margin-bottom: 10px;
+      margin-bottom: 0;
       font-size: 14px;
       color: #666;
+      padding-bottom: 0;
     }
 
     .link-item a {
@@ -478,6 +531,8 @@ if (isset($_POST['btnRegister']) || (isset($_POST['username']) && isset($_POST['
     .back-home {
       text-align: center;
       margin-top: 20px;
+      margin-bottom: 0;
+      padding-top: 0;
     }
 
     .back-home a {
@@ -541,11 +596,11 @@ if (isset($_POST['btnRegister']) || (isset($_POST['username']) && isset($_POST['
 
     @media (max-width: 768px) {
       body {
-        padding: 20px 10px;
+        padding: 15px 10px;
       }
 
       .register-card {
-        padding: 30px 20px;
+        padding: 30px 20px 25px 20px;
       }
 
       .logo-text {

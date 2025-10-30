@@ -1,0 +1,8 @@
+# Allow file access
+Options -Indexes
+
+# Allow image and video files
+<FilesMatch "\.(jpg|jpeg|png|gif|mp4|avi|mov|webm)$">
+    Allow from all
+</FilesMatch>
+
