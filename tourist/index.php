@@ -21,6 +21,65 @@ WHERE ua.useraccount_id = '$useraccount_id'; ");
 $company_user_row = mysqli_fetch_assoc($company_user_query);
 
 
+$stats = [
+    'establishments' => 0,
+    'hotels' => 0,
+    'spots' => 0,
+    'prayers' => 0
+];
+
+// Aggregate live counts for each service
+$count_query = mysqli_query($conn, "SELECT usertype_id, COUNT(*) as total FROM tbl_company WHERE usertype_id IN (3,4,5,6) AND status_id IN (1,4) GROUP BY usertype_id");
+if ($count_query) {
+    while ($row = mysqli_fetch_assoc($count_query)) {
+        if ($row['usertype_id'] == 3) $stats['establishments'] = (int)$row['total'];
+        if ($row['usertype_id'] == 4) $stats['hotels'] = (int)$row['total'];
+        if ($row['usertype_id'] == 5) $stats['spots'] = (int)$row['total'];
+        if ($row['usertype_id'] == 6) $stats['prayers'] = (int)$row['total'];
+    }
+}
+
+// (Removed) featured listings test block
+
+// Helper: find the first uploaded image for a given company
+function find_company_image($companyId) {
+    $dir = '../uploads/company/images/' . $companyId . '/';
+    if (is_dir($dir)) {
+        $files = scandir($dir);
+        foreach ($files as $f) {
+            if ($f !== '.' && $f !== '..' && preg_match('/\.(jpg|jpeg|png|gif|jfif)$/i', $f)) {
+                return $dir . $f;
+            }
+        }
+    }
+    return null;
+}
+
+// About image: force a static, bundled halal-themed image (no DB lookup)
+$about_image = '../assets2/images/about-1.jpg';
+
+// Testimonial avatars: collect up to three real images from uploads
+$testimonial_images = [];
+$qT = mysqli_query($conn, "SELECT company_id FROM tbl_company WHERE usertype_id IN (3,4,5,6) AND status_id IN (1,4) ORDER BY date_added DESC LIMIT 50");
+if ($qT) {
+    while ($row = mysqli_fetch_assoc($qT)) {
+        $img = find_company_image($row['company_id']);
+        if ($img) { $testimonial_images[] = $img; }
+        if (count($testimonial_images) >= 3) break;
+    }
+}
+
+// Fetch latest approved feedbacks for testimonials
+$feedbacks = [];
+$tbl_check = mysqli_query($conn, "SHOW TABLES LIKE 'tbl_feedback'");
+if ($tbl_check && mysqli_num_rows($tbl_check) > 0) {
+    $fbq = mysqli_query($conn, "SELECT feedback_id, display_name, rating, comment, created_at FROM tbl_feedback WHERE is_approved = 1 ORDER BY created_at DESC LIMIT 9");
+    if ($fbq) { while ($r = mysqli_fetch_assoc($fbq)) { $feedbacks[] = $r; } }
+}
+
+// Use a neutral random-people SVG avatar instead of profile images
+$avatar_svg = 'data:image/svg+xml;utf8,' . rawurlencode('<svg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#22c55e"/><stop offset="100%" stop-color="#16a34a"/></linearGradient></defs><circle cx="30" cy="30" r="28" fill="url(#g)"/><g fill="#fff" opacity="0.95"><circle cx="30" cy="25" r="9"/><path d="M30 36c-11 0-18 6-18 12 0 1.1.9 2 2 2h32c1.1 0 2-.9 2-2 0-6-7-12-18-12z"/></g></svg>');
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -29,6 +88,8 @@ $company_user_row = mysqli_fetch_assoc($company_user_query);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HalalGuide - Your Trusted Muslim Travel Companion</title>
     <meta name="description" content="Discover halal-certified establishments, accommodations, tourist spots, and prayer facilities for Muslim travelers">
+    <link rel="icon" type="image/png" href="../assets2/images/ph_halal_logo.png">
+    <link rel="apple-touch-icon" href="../assets2/images/ph_halal_logo.png">
     
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -38,10 +99,35 @@ $company_user_row = mysqli_fetch_assoc($company_user_query);
     
     <!-- AOS Animation -->
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <!-- SweetAlert2 (toasts) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     
     <!-- Custom CSS -->
     <link rel="stylesheet" href="../assets2/css/style.css">
     <link rel="stylesheet" href="css/tourist-common.css">
+    <style>
+        /* Feedback Modal UI */
+        .feedback-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur(2px); display: none; align-items: center; justify-content: center; z-index: 2000; }
+        .feedback-overlay.show { display: flex; }
+        .feedback-card { width: 92%; max-width: 560px; background: #fff; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.25); overflow: hidden; }
+        .feedback-header { padding: 18px 20px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: #fff; display: flex; align-items: center; justify-content: space-between; }
+        .feedback-title { margin: 0; font-size: 18px; font-weight: 700; }
+        .feedback-close { background: rgba(255,255,255,0.2); border: 0; color: #fff; width: 34px; height: 34px; border-radius: 10px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+        .feedback-body { padding: 18px 20px; }
+        .feedback-row { margin-bottom: 14px; }
+        .feedback-label { display: block; font-weight: 600; margin-bottom: 6px; color: #374151; }
+        .feedback-static { padding: 10px; border: 1px solid #e5e7eb; border-radius: 10px; background: #f9fafb; }
+        .feedback-input, .feedback-textarea { width: 100%; padding: 12px; border: 1px solid #e5e7eb; border-radius: 10px; outline: none; transition: box-shadow .2s, border-color .2s; }
+        .feedback-input:focus, .feedback-textarea:focus { border-color: #22c55e; box-shadow: 0 0 0 4px rgba(34,197,94,.15); }
+        .rating-stars i { font-size: 22px; color: #f59e0b; cursor: pointer; transition: transform .1s; }
+        .rating-stars i:hover { transform: scale(1.1); }
+        .feedback-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 0 20px 20px; }
+        .btn-outline { padding: 10px 16px; border-radius: 10px; border: 2px solid #a7f3d0; background: #f0fdf4; color: #15803d; font-weight: 600; cursor: pointer; }
+        .btn-outline:hover { background: #dcfce7; }
+        .btn-gradient { padding: 10px 18px; border-radius: 10px; border: 0; background: linear-gradient(135deg,#22c55e 0%, #16a34a 100%); color: #fff; font-weight: 700; cursor: pointer; box-shadow: 0 4px 14px rgba(34,197,94,.35); }
+        .btn-gradient:hover { filter: brightness(1.05); }
+        .char-hint { font-size: 12px; color: #6b7280; text-align: right; margin-top: 4px; }
+    </style>
 </head>
 <body>
     
@@ -60,8 +146,6 @@ $company_user_row = mysqli_fetch_assoc($company_user_query);
                         <li><a href="#services" class="nav-link">Services</a></li>
                         <li><a href="../pages/map/map.html?return=tourist" class="nav-link">Halal Certified Near Me</a></li>
                         <li><a href="#about" class="nav-link">About</a></li>
-                        <li><a href="#testimonials" class="nav-link">Reviews</a></li>
-                        <li><a href="#contact" class="nav-link">Contact</a></li>
                     </ul>
                     <div class="nav-buttons">
                         <div class="user-dropdown">
@@ -146,6 +230,8 @@ $company_user_row = mysqli_fetch_assoc($company_user_query);
         </div>
     </section>
 
+    
+
     <!-- Services Section -->
     <section class="services" id="services">
         <div class="container">
@@ -169,7 +255,7 @@ $company_user_row = mysqli_fetch_assoc($company_user_query);
                             <li><i class="fas fa-check"></i> Authentic Reviews</li>
                             <li><i class="fas fa-check"></i> Menu Details</li>
                         </ul>
-                        <a href="establishments.php" class="btn-service">View Establishments</a>
+                        <a href="establishments.php" class="btn-service">View Establishments (<?php echo $stats['establishments']; ?>)</a>
                     </div>
                 </div>
                 
@@ -186,7 +272,7 @@ $company_user_row = mysqli_fetch_assoc($company_user_query);
                             <li><i class="fas fa-check"></i> Halal Food Options</li>
                             <li><i class="fas fa-check"></i> Qibla Direction</li>
                         </ul>
-                        <a href="hotels.php" class="btn-service">Find Hotels</a>
+                        <a href="hotels.php" class="btn-service">Find Hotels (<?php echo $stats['hotels']; ?>)</a>
                     </div>
                 </div>
                 
@@ -203,7 +289,7 @@ $company_user_row = mysqli_fetch_assoc($company_user_query);
                             <li><i class="fas fa-check"></i> Cultural Experiences</li>
                             <li><i class="fas fa-check"></i> Guided Tours Available</li>
                         </ul>
-                        <a href="tourist-spots.php" class="btn-service">Discover Places</a>
+                        <a href="tourist-spots.php" class="btn-service">Discover Places (<?php echo $stats['spots']; ?>)</a>
                     </div>
                 </div>
                 
@@ -220,7 +306,7 @@ $company_user_row = mysqli_fetch_assoc($company_user_query);
                             <li><i class="fas fa-check"></i> Nearby Mosques</li>
                             <li><i class="fas fa-check"></i> Prayer Room Locations</li>
                         </ul>
-                        <a href="prayer-facilities.php" class="btn-service">Find Prayer Rooms</a>
+                        <a href="prayer-facilities.php" class="btn-service">Find Prayer Rooms (<?php echo $stats['prayers']; ?>)</a>
                     </div>
                 </div>
             </div>
@@ -232,7 +318,7 @@ $company_user_row = mysqli_fetch_assoc($company_user_query);
         <div class="container">
             <div class="about-wrapper">
                 <div class="about-image" data-aos="fade-right">
-                    <img src="../assets2/images/about.jpg" alt="About HalalGuide">
+                    <img src="../assets2/images/about-1.jpg" alt="About HalalGuide" loading="lazy" decoding="async" style="width:100%;height:auto;border-radius:12px;object-fit:cover;">
                     <div class="about-badge">
                         <div class="badge-content">
                             <span class="badge-number">1000+</span>
@@ -293,7 +379,7 @@ $company_user_row = mysqli_fetch_assoc($company_user_query);
                         <i class="fas fa-utensils"></i>
                     </div>
                     <div class="stat-content">
-                        <span class="stat-number" data-count="500">0</span>
+                        <span class="stat-number" data-count="<?php echo (int)$stats['establishments']; ?>"><?php echo (int)$stats['establishments']; ?></span>
                         <span class="stat-label">Halal Restaurants</span>
                     </div>
                 </div>
@@ -303,7 +389,7 @@ $company_user_row = mysqli_fetch_assoc($company_user_query);
                         <i class="fas fa-hotel"></i>
                     </div>
                     <div class="stat-content">
-                        <span class="stat-number" data-count="200">0</span>
+                        <span class="stat-number" data-count="<?php echo (int)$stats['hotels']; ?>"><?php echo (int)$stats['hotels']; ?></span>
                         <span class="stat-label">Hotels & Resorts</span>
                     </div>
                 </div>
@@ -313,7 +399,7 @@ $company_user_row = mysqli_fetch_assoc($company_user_query);
                         <i class="fas fa-map-marked-alt"></i>
                     </div>
                     <div class="stat-content">
-                        <span class="stat-number" data-count="150">0</span>
+                        <span class="stat-number" data-count="<?php echo (int)$stats['spots']; ?>"><?php echo (int)$stats['spots']; ?></span>
                         <span class="stat-label">Tourist Destinations</span>
                     </div>
                 </div>
@@ -323,7 +409,7 @@ $company_user_row = mysqli_fetch_assoc($company_user_query);
                         <i class="fas fa-mosque"></i>
                     </div>
                     <div class="stat-content">
-                        <span class="stat-number" data-count="300">0</span>
+                        <span class="stat-number" data-count="<?php echo (int)$stats['prayers']; ?>"><?php echo (int)$stats['prayers']; ?></span>
                         <span class="stat-label">Prayer Facilities</span>
                     </div>
                 </div>
@@ -338,156 +424,92 @@ $company_user_row = mysqli_fetch_assoc($company_user_query);
                 <span class="section-badge">Testimonials</span>
                 <h2 class="section-title">What Our Users Say</h2>
                 <p class="section-subtitle">Real experiences from Muslim travelers around the world</p>
+                <div style="margin-top:12px;">
+                    <button id="openFeedbackBtn" class="btn-cta-primary">Share Your Experience</button>
+                </div>
             </div>
             
             <div class="testimonials-slider">
-                <div class="testimonial-card" data-aos="fade-up" data-aos-delay="100">
-                    <div class="testimonial-header">
-                        <img src="../assets2/images/person_1.jpg" alt="User" class="testimonial-avatar">
-                        <div class="testimonial-info">
-                            <h4 class="testimonial-name">Fatima Ahmed</h4>
-                            <div class="testimonial-rating">
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
+                <?php if (!empty($feedbacks)): $delay=100; foreach ($feedbacks as $fb): ?>
+                    <div class="testimonial-card" data-aos="fade-up" data-aos-delay="<?php echo $delay; ?>">
+                        <div class="testimonial-header">
+                            <img src="<?php echo $avatar_svg; ?>" alt="User" class="testimonial-avatar">
+                            <div class="testimonial-info">
+                                <h4 class="testimonial-name"><?php echo htmlspecialchars($fb['display_name'] ?: 'Tourist User'); ?></h4>
+                                <div class="testimonial-rating">
+                                    <?php for($i=0;$i<5;$i++): ?>
+                                        <i class="fas fa-star" style="<?php echo $i < (int)$fb['rating'] ? '' : 'opacity:0.2'; ?>"></i>
+                                    <?php endfor; ?>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <p class="testimonial-text">"HalalGuide made our family vacation stress-free! We easily found halal restaurants and prayer facilities everywhere we went. Highly recommended!"</p>
-                    <div class="testimonial-location">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <span>Dubai, UAE</span>
-                    </div>
-                </div>
-                
-                <div class="testimonial-card" data-aos="fade-up" data-aos-delay="200">
-                    <div class="testimonial-header">
-                        <img src="../assets2/images/person_2.jpg" alt="User" class="testimonial-avatar">
-                        <div class="testimonial-info">
-                            <h4 class="testimonial-name">Mohammed Hassan</h4>
-                            <div class="testimonial-rating">
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                            </div>
+                        <p class="testimonial-text">"<?php echo htmlspecialchars($fb['comment']); ?>"</p>
+                        <div class="testimonial-location">
+                            <i class="fas fa-calendar"></i>
+                            <span><?php echo date('M j, Y', strtotime($fb['created_at'])); ?></span>
                         </div>
                     </div>
-                    <p class="testimonial-text">"As a frequent traveler, HalalGuide has become my go-to app. The verification system gives me confidence that all establishments are truly halal-certified."</p>
-                    <div class="testimonial-location">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <span>London, UK</span>
-                    </div>
-                </div>
-                
-                <div class="testimonial-card" data-aos="fade-up" data-aos-delay="300">
-                    <div class="testimonial-header">
-                        <img src="../assets2/images/person_3.jpg" alt="User" class="testimonial-avatar">
-                        <div class="testimonial-info">
-                            <h4 class="testimonial-name">Aisha Rahman</h4>
-                            <div class="testimonial-rating">
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
-                                <i class="fas fa-star"></i>
+                <?php $delay+=100; endforeach; else: ?>
+                    <div class="testimonial-card" data-aos="fade-up" data-aos-delay="100">
+                        <div class="testimonial-header">
+                            <img src="<?php echo $avatar_svg; ?>" alt="User" class="testimonial-avatar">
+                            <div class="testimonial-info">
+                                <h4 class="testimonial-name">Welcome!</h4>
+                                <div class="testimonial-rating">
+                                    <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                                </div>
                             </div>
                         </div>
+                        <p class="testimonial-text">Be the first to share your experience with HalalGuide.</p>
+                        <div class="testimonial-location">
+                            <i class="fas fa-info-circle"></i>
+                            <span>Your feedback appears here after submission.</span>
+                        </div>
                     </div>
-                    <p class="testimonial-text">"The prayer facility locator is a game-changer! I never have to worry about finding a place to pray during my travels anymore. JazakAllah khair!"</p>
-                    <div class="testimonial-location">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <span>Kuala Lumpur, Malaysia</span>
-                    </div>
-                </div>
+                <?php endif; ?>
             </div>
         </div>
     </section>
 
-    <!-- CTA Section -->
-    <section class="cta">
-        <div class="container">
-            <div class="cta-content" data-aos="zoom-in">
-                <h2 class="cta-title">Ready to Start Your Halal Journey?</h2>
-                <p class="cta-text">Join thousands of Muslim travelers who trust HalalGuide for their travel needs</p>
-                <div class="cta-buttons">
-                    <a href="#" class="btn-cta-primary">Get Started Free</a>
-                    <a href="#contact" class="btn-cta-secondary">Contact Us</a>
-                </div>
+    <!-- Feedback Modal -->
+    <div id="feedbackModal" class="feedback-overlay">
+        <div class="feedback-card">
+            <div class="feedback-header">
+                <h3 class="feedback-title"><i class="fas fa-comment-dots"></i> Share Your Experience</h3>
+                <button type="button" id="closeFeedbackBtn" class="feedback-close"><i class="fas fa-times"></i></button>
             </div>
-        </div>
-    </section>
-
-    <!-- Contact Section -->
-    <section class="contact" id="contact">
-        <div class="container">
-            <div class="section-header" data-aos="fade-up">
-                <span class="section-badge">Contact Us</span>
-                <h2 class="section-title">Get In Touch</h2>
-                <p class="section-subtitle">Have questions? We'd love to hear from you</p>
-            </div>
-            
-            <div class="contact-wrapper">
-                <div class="contact-info" data-aos="fade-right">
-                    <div class="contact-item">
-                        <div class="contact-icon">
-                            <i class="fas fa-map-marker-alt"></i>
+            <div class="feedback-body">
+                <p style="margin:0 0 12px 0; color:#6b7280;">Your feedback helps other Muslim travelers.</p>
+                <form id="feedbackForm">
+                    <div class="feedback-row">
+                        <label class="feedback-label">Posting as</label>
+                        <div class="feedback-static"><?php echo htmlspecialchars(($company_user_row['firstname'] ?? '') . ' ' . ($company_user_row['lastname'] ?? '')); ?></div>
+                    </div>
+                    <div class="feedback-row">
+                        <label class="feedback-label">Rating</label>
+                        <div id="ratingStars" class="rating-stars">
+                            <i data-v="1" class="fas fa-star"></i>
+                            <i data-v="2" class="fas fa-star"></i>
+                            <i data-v="3" class="fas fa-star"></i>
+                            <i data-v="4" class="fas fa-star"></i>
+                            <i data-v="5" class="fas fa-star"></i>
                         </div>
-                        <div class="contact-details">
-                            <h4>Address</h4>
-                            <p>123 Halal Street, Islamic Center<br>City, Country 12345</p>
-                        </div>
+                        <input type="hidden" name="rating" id="ratingInput" value="5">
                     </div>
-                    
-                    <div class="contact-item">
-                        <div class="contact-icon">
-                            <i class="fas fa-phone"></i>
-                        </div>
-                        <div class="contact-details">
-                            <h4>Phone</h4>
-                            <p>+1 234 567 8900<br>+1 234 567 8901</p>
-                        </div>
+                    <div class="feedback-row">
+                        <label class="feedback-label">Comment</label>
+                        <textarea name="comment" rows="4" class="feedback-textarea" maxlength="500" required></textarea>
+                        <div class="char-hint"><span id="charCount">0</span>/500</div>
                     </div>
-                    
-                    <div class="contact-item">
-                        <div class="contact-icon">
-                            <i class="fas fa-envelope"></i>
-                        </div>
-                        <div class="contact-details">
-                            <h4>Email</h4>
-                            <p>info@halalguide.com<br>support@halalguide.com</p>
-                        </div>
-                    </div>
-                    
-                    <div class="social-links">
-                        <a href="#" class="social-link"><i class="fab fa-facebook-f"></i></a>
-                        <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
-                        <a href="#" class="social-link"><i class="fab fa-instagram"></i></a>
-                        <a href="#" class="social-link"><i class="fab fa-linkedin-in"></i></a>
-                    </div>
-                </div>
-                
-                <form class="contact-form" data-aos="fade-left">
-                    <div class="form-group">
-                        <input type="text" class="form-control" placeholder="Your Name" required>
-                    </div>
-                    <div class="form-group">
-                        <input type="email" class="form-control" placeholder="Your Email" required>
-                    </div>
-                    <div class="form-group">
-                        <input type="text" class="form-control" placeholder="Subject" required>
-                    </div>
-                    <div class="form-group">
-                        <textarea class="form-control" rows="5" placeholder="Your Message" required></textarea>
-                    </div>
-                    <button type="submit" class="btn-submit">Send Message</button>
                 </form>
             </div>
+            <div class="feedback-footer">
+                <button type="button" id="cancelFeedbackBtn" class="btn-outline"><i class="fas fa-times"></i> Cancel</button>
+                <button type="submit" form="feedbackForm" class="btn-gradient"><i class="fas fa-paper-plane"></i> Submit</button>
+            </div>
         </div>
-    </section>
+    </div>
+
 
     <!-- Footer -->
     <footer class="footer">
@@ -514,7 +536,6 @@ $company_user_row = mysqli_fetch_assoc($company_user_query);
                         <li><a href="#services">Services</a></li>
                         <li><a href="#about">About Us</a></li>
                         <li><a href="#testimonials">Reviews</a></li>
-                        <li><a href="#contact">Contact</a></li>
                     </ul>
                 </div>
                 
@@ -559,6 +580,8 @@ $company_user_row = mysqli_fetch_assoc($company_user_query);
 
     <!-- AOS Animation JS -->
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <!-- SweetAlert2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <!-- Custom JS -->
     <script src="../assets2/js/main.js"></script>
@@ -637,6 +660,63 @@ $company_user_row = mysqli_fetch_assoc($company_user_query);
                     }
                 });
             });
+        });
+
+        // Feedback modal + submit
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('feedbackModal');
+            const openBtn = document.getElementById('openFeedbackBtn');
+            const closeBtn = document.getElementById('closeFeedbackBtn');
+            const cancelBtn = document.getElementById('cancelFeedbackBtn');
+            const form = document.getElementById('feedbackForm');
+            const stars = document.querySelectorAll('#ratingStars i');
+            const ratingInput = document.getElementById('ratingInput');
+            const textarea = form ? form.querySelector('textarea[name="comment"]') : null;
+            const charCount = document.getElementById('charCount');
+
+            if (openBtn) openBtn.addEventListener('click', () => { modal.classList.add('show'); });
+            if (closeBtn) closeBtn.addEventListener('click', () => { modal.classList.remove('show'); });
+            if (cancelBtn) cancelBtn.addEventListener('click', () => { modal.classList.remove('show'); });
+            if (modal) modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('show'); });
+
+            stars.forEach(star => {
+                star.addEventListener('click', () => {
+                    const v = parseInt(star.getAttribute('data-v'));
+                    ratingInput.value = v;
+                    stars.forEach((s, i) => { s.style.opacity = (i < v) ? '1' : '0.3'; });
+                });
+                // Hover preview
+                star.addEventListener('mouseenter', () => {
+                    const v = parseInt(star.getAttribute('data-v'));
+                    stars.forEach((s, i) => { s.style.opacity = (i < v) ? '1' : '0.3'; });
+                });
+                star.addEventListener('mouseleave', () => {
+                    const v = parseInt(ratingInput.value || '0');
+                    stars.forEach((s, i) => { s.style.opacity = (i < v) ? '1' : '0.3'; });
+                });
+            });
+
+            if (textarea && charCount) {
+                const updateCount = () => { charCount.textContent = String(textarea.value.length); };
+                textarea.addEventListener('input', updateCount);
+                updateCount();
+            }
+
+            if (form) {
+                form.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    const fd = new FormData(form);
+                    const resp = await fetch('submit_feedback.php', { method: 'POST', body: fd });
+                    const data = await resp.json().catch(() => ({ success:false, message:'Unexpected response' }));
+                    if (data.success) {
+                        modal.style.display = 'none';
+                        Swal.fire({ icon: 'success', title: 'Thanks for your feedback!', toast: true, position: 'top-end', timer: 2500, showConfirmButton: false })
+                            .then(() => window.location.reload());
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Unable to submit', text: data.message || 'Failed to submit feedback.' });
+                    }
+                });
+            }
         });
     </script>
 </body>

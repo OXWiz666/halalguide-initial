@@ -647,7 +647,7 @@ if ($application_id) {
                                 </div>
                                 <div class="col-md-6 mb-2">
                                     <label style="font-size: 13px;">Mobile No.:</label>
-                                    <input type="text" name="application_contact" class="form-control form-control-sm" value="<?php echo htmlspecialchars($company_row['contant_no'] ?? ''); ?>" required style="border: 1px solid #000;">
+                                    <input type="text" name="application_contact" class="form-control form-control-sm" value="<?php echo htmlspecialchars($company_row['contant_no'] ?? ''); ?>" required pattern="^09[0-9]{9}$" title="Mobile number must start with 09 and be 11 digits" style="border: 1px solid #000;">
                                 </div>
                                 <div class="col-md-6 mb-2">
                                     <label style="font-size: 13px;">Fax No.:</label>
@@ -675,7 +675,7 @@ if ($application_id) {
                             <label style="font-weight: bold; display: block; margin-bottom: 8px; color: #000;">5. Legal Personality:</label>
                             <div style="display: flex; gap: 20px;">
                                 <label style="display: flex; align-items: center; gap: 5px;">
-                                    <input type="radio" name="legal_personality" value="Sole Proprietorship"> Sole Proprietorship
+                                    <input type="radio" name="legal_personality" value="Sole Proprietorship" required> Sole Proprietorship
                                 </label>
                                 <label style="display: flex; align-items: center; gap: 5px;">
                                     <input type="radio" name="legal_personality" value="Partnership"> Partnership
@@ -691,7 +691,7 @@ if ($application_id) {
                             <label style="font-weight: bold; display: block; margin-bottom: 8px; color: #000;">6. Category:</label>
                             <div style="display: flex; gap: 20px;">
                                 <label style="display: flex; align-items: center; gap: 5px;">
-                                    <input type="radio" name="category" value="Micro"> Micro
+                                    <input type="radio" name="category" value="Micro" required> Micro
                                 </label>
                                 <label style="display: flex; align-items: center; gap: 5px;">
                                     <input type="radio" name="category" value="Small"> Small
@@ -1155,6 +1155,27 @@ if ($application_id) {
             exit();
         }
         
+        // Validate application form required fields (server-side)
+        $appErrors = [];
+        if (empty($legal_personality)) { $appErrors[] = 'Please select Legal Personality.'; }
+        if (empty($category)) { $appErrors[] = 'Please select Category.'; }
+        if (empty($contact_person)) { $appErrors[] = 'Please enter Contact Person.'; }
+        if (!empty($application_contact) && !preg_match('/^09[0-9]{9}$/', $application_contact)) { $appErrors[] = 'Mobile No. must be 11 digits starting with 09.'; }
+        if (empty($business_food) && empty($business_nonfood)) { $appErrors[] = 'Please specify at least one Type of Business (Food or Non-Food).'; }
+        if (empty($product_a) && empty($product_b) && empty($product_c)) { $appErrors[] = 'Please enter at least one Product to be certified.'; }
+        if (!empty($appErrors)) {
+            echo "<script src='https://cdn.jsdelivr.net/npm/sweetalert2@11'></script>";
+            echo "<script>
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Incomplete Application',
+                    html: '<ul style=\'text-align:left;\'>" . implode("", array_map(function($m){return "<li>" . addslashes($m) . "</li>";}, $appErrors)) . "</ul>',
+                    confirmButtonColor: '#d33'
+                }).then(() => { history.back(); });
+            </script>";
+            exit();
+        }
+
         // Generate application ID and number
         $application_id = generate_string($permitted_chars, 25);
         $application_number = 'APP-' . date('Y') . '-' . strtoupper(substr(generate_string($permitted_chars, 8), 0, 8));
@@ -1467,6 +1488,40 @@ if ($application_id) {
                 }
             });
         }
+
+        // Client-side validation for Application form
+        (function() {
+            const form = document.getElementById('halalApplicationForm');
+            if (!form) return;
+            form.addEventListener('submit', function(e) {
+                const errors = [];
+                const legal = form.querySelector('input[name="legal_personality"]:checked');
+                const cat = form.querySelector('input[name="category"]:checked');
+                const contactPerson = form.querySelector('input[name="contact_person"]').value.trim();
+                const mobile = form.querySelector('input[name="application_contact"]').value.trim();
+                const food = form.querySelector('input[name="business_food"]').value.trim();
+                const nonfood = form.querySelector('input[name="business_nonfood"]').value.trim();
+                const prodA = form.querySelector('input[name="product_a"]').value.trim();
+                const prodB = form.querySelector('input[name="product_b"]').value.trim();
+                const prodC = form.querySelector('input[name="product_c"]').value.trim();
+
+                if (!legal) errors.push('Please select Legal Personality.');
+                if (!cat) errors.push('Please select Category.');
+                if (!contactPerson) errors.push('Please enter Contact Person.');
+                if (!/^09\d{9}$/.test(mobile)) errors.push('Mobile No. must start with 09 and be 11 digits.');
+                if (!food && !nonfood) errors.push('Specify at least one Type of Business (Food or Non-Food).');
+                if (!prodA && !prodB && !prodC) errors.push('Enter at least one Product to be certified.');
+
+                if (errors.length) {
+                    e.preventDefault();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Incomplete Application',
+                        html: '<ul style="text-align:left;">' + errors.map(m => '<li>' + m + '</li>').join('') + '</ul>'
+                    });
+                }
+            });
+        })();
     </script>
 </body>
 </html>

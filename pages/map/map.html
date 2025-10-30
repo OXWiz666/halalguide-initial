@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Near Me - Halal Certified Establishments | HalalGuide</title>
     
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- AdminLTE (for consistent font and base styles) -->
+    <link rel="stylesheet" href="../../dist/css/adminlte.min.css">
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -45,10 +45,10 @@
             <!-- Location Status -->
             <div class="location-status loading" id="locationStatus">
                 <div class="location-text">
-                    <i class="fas fa-crosshairs fa-spin"></i>
-                    Detecting your location...
+                    <i class="fas fa-spinner fa-spin"></i>
+                    Loading all available places...
                 </div>
-                <div class="location-details">Please allow location access</div>
+                <div class="location-details">Showing all establishments, hotels, tourist spots and prayer facilities</div>
             </div>
             
             <!-- Search Section -->
@@ -58,20 +58,7 @@
                     <input type="text" id="searchInput" placeholder="Search establishments...">
                 </div>
                 
-                <!-- Radius Control (Reference Only - Not Used for Filtering) -->
-                <div class="radius-control">
-                    <label>
-                        <i class="fas fa-circle"></i> Reference Radius (km) <small style="opacity: 0.7;">- for reference only</small>
-                    </label>
-                    <div class="radius-control-wrapper">
-                        <input type="range" id="radiusSlider" min="1" max="50" value="10">
-                        <input type="number" id="radiusInput" class="radius-input" min="1" max="50" value="10">
-                        <span class="km-label">km</span>
-                    </div>
-                    <small style="color: #718096; font-size: 11px; margin-top: 5px; display: block;">
-                        <i class="fas fa-info-circle"></i> All establishments are shown regardless of radius
-                    </small>
-                </div>
+                <!-- Radius Control removed -->
                 
                 <!-- Custom Location -->
                 <div class="custom-location-control">
@@ -163,8 +150,7 @@
         let displayedPlaces = [];
         let markers = [];
         let currentFilter = 'all';
-        let radius = 10; // Default radius in km
-        let radiusCircle = null;
+        let radiusCircle = null; // disabled
         let routingControl = null;
         let selectedPlace = null;
         let mapClickMode = false;
@@ -355,11 +341,8 @@
                 maxZoom: 19
             }).addTo(map);
             
-            // Load places from database API
+            // Load places from database API (no auto geolocation)
             loadPlacesFromAPI();
-            
-            // Try to get user location automatically
-            getCurrentLocation();
             
             // Search functionality
             document.getElementById('searchInput').addEventListener('input', function(e) {
@@ -367,30 +350,21 @@
                 filterAndSearch(query);
             });
             
-            // Radius control
-            const radiusSlider = document.getElementById('radiusSlider');
-            const radiusInput = document.getElementById('radiusInput');
-            
-            radiusSlider.addEventListener('input', function() {
-                radius = parseInt(this.value);
-                radiusInput.value = radius;
-                updateRadius();
-            });
-            
-            radiusInput.addEventListener('change', function() {
-                radius = parseInt(this.value);
-                if (radius < 1) radius = 1;
-                if (radius > 50) radius = 50;
-                radiusSlider.value = radius;
-                radiusInput.value = radius;
-                updateRadius();
-            });
+            // Radius control removed
         }
         
         // Load Places from Database API - Shows ALL establishments (no radius filter)
         function loadPlacesFromAPI() {
             fetch('map-api.php?type=all')
-                .then(response => response.json())
+                .then(async (response) => {
+                    const text = await response.text();
+                    try {
+                        return JSON.parse(text);
+                    } catch (e) {
+                        console.error('API non-JSON response:', text);
+                        throw new Error('Invalid JSON from API');
+                    }
+                })
                 .then(data => {
                     if (data.success && data.places) {
                         // Transform database data to map format
@@ -421,9 +395,19 @@
                         // Update stats
                         document.getElementById('statsBar').style.display = 'flex';
                         updateStats();
+                        // Update location status bar
+                        const ls = document.getElementById('locationStatus');
+                        ls.className = 'location-status success';
+                        ls.innerHTML = `
+                            <div class="location-text">
+                                <i class="fas fa-check-circle"></i>
+                                Loaded ${allPlaces.length} places
+                            </div>
+                            <div class="location-details">All establishments, hotels, tourist spots and prayer facilities are displayed</div>
+                        `;
                     } else {
                         // No data available
-                        console.warn('No establishments found in database');
+                        console.warn('No establishments found in database', data.sql_error || '');
                         allPlaces = [];
                         displayedPlaces = [];
                         displayPlaces();
@@ -434,7 +418,15 @@
                 })
                 .catch(error => {
                     console.error('Error loading places:', error);
-                    // Show error message
+                    const ls = document.getElementById('locationStatus');
+                    ls.className = 'location-status error';
+                    ls.innerHTML = `
+                        <div class="location-text">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Failed to load places
+                        </div>
+                        <div class="location-details">Please check the API response in browser console (map-api.php). Ensure database has companies.</div>
+                    `;
                     allPlaces = [];
                     displayedPlaces = [];
                     displayPlaces();
@@ -447,28 +439,8 @@
         // Note: loadPlacesWithRadius function removed - we now show ALL places
         // Radius is only used for visual reference circle, not filtering
         
-        // Update Radius (for visual circle only, not filtering)
-        function updateRadius() {
-            if (userLocation && radiusCircle) {
-                map.removeLayer(radiusCircle);
-            }
-            
-            if (userLocation) {
-                // Show radius circle for reference only (doesn't filter results)
-                radiusCircle = L.circle([userLocation.lat, userLocation.lng], {
-                    radius: radius * 1000,
-                    fillColor: '#22c55e',
-                    fillOpacity: 0.1,
-                    color: '#16a34a',
-                    weight: 2,
-                    dashArray: '5, 5'
-                }).addTo(map);
-                
-                // Recalculate distances for all places (but show all)
-                calculateDistances();
-                showNearbyPlaces();
-            }
-        }
+        // Update Radius disabled
+        function updateRadius() {}
         
         // Set Custom Location
         function setCustomLocation() {
@@ -601,7 +573,7 @@
             // Remove old markers
             if (userMarker) map.removeLayer(userMarker);
             if (customLocationMarker) map.removeLayer(customLocationMarker);
-            if (radiusCircle) map.removeLayer(radiusCircle);
+            // no radius circle
             
             // Add user marker
             userMarker = L.marker([userLocation.lat, userLocation.lng], {
@@ -612,15 +584,7 @@
             // Center map
             map.setView([userLocation.lat, userLocation.lng], 13);
             
-            // Add radius circle (visual reference only, doesn't filter)
-            radiusCircle = L.circle([userLocation.lat, userLocation.lng], {
-                radius: radius * 1000,
-                fillColor: '#22c55e',
-                fillOpacity: 0.1,
-                color: '#16a34a',
-                weight: 2,
-                dashArray: '5, 5'
-            }).addTo(map);
+            // radius circle removed
             
             // Calculate distances and show ALL places (no radius filter)
             calculateDistances();
@@ -628,6 +592,60 @@
             
             // Show stats bar
             document.getElementById('statsBar').style.display = 'flex';
+        }
+
+        // Helper: ensure we have user location; request it if missing and then run callback
+        function ensureUserLocation(callback) {
+            if (userLocation) { callback && callback(); return; }
+            if (!navigator.geolocation) {
+                Swal.fire({
+                    icon: 'info', title: 'Geolocation Not Supported',
+                    text: 'Your browser does not support geolocation. Use the Custom Location field or click the map.',
+                    toast: true, position: 'top-end', timer: 4500, showConfirmButton: false
+                });
+                return;
+            }
+
+            const acquire = () => {
+                Swal.fire({ title: 'Getting your location...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+                navigator.geolocation.getCurrentPosition(pos => {
+                    Swal.close();
+                    const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    setUserLocation(loc);
+                    callback && callback();
+                }, err => {
+                    Swal.close();
+                    let msg = 'Unable to get your location.';
+                    if (err && err.code === 1) msg = 'Location permission denied. Enable it or set a custom location.'; // PERMISSION_DENIED
+                    if (err && err.code === 2) msg = 'Position unavailable. Try again or set a custom location.';
+                    if (err && err.code === 3) msg = 'Location request timed out. Try again or set a custom location.';
+                    Swal.fire({
+                        icon: 'error', title: 'Location Unavailable', text: msg,
+                        showCancelButton: true, confirmButtonText: 'Click map to set location', cancelButtonText: 'Dismiss'
+                    }).then(res => {
+                        if (res.isConfirmed) {
+                            enableMapClickLocation();
+                        }
+                    });
+                }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+            };
+
+            // If supported, check permission state to hint the user
+            if (navigator.permissions && navigator.permissions.query) {
+                navigator.permissions.query({ name: 'geolocation' }).then(result => {
+                    if (result.state === 'denied') {
+                        Swal.fire({
+                            icon: 'warning', title: 'Location is blocked',
+                            text: 'Please allow location in your browser settings, or set a custom location.',
+                            showCancelButton: true, confirmButtonText: 'Click map to set location', cancelButtonText: 'Dismiss'
+                        }).then(res => { if (res.isConfirmed) enableMapClickLocation(); });
+                    } else {
+                        acquire();
+                    }
+                }).catch(() => acquire());
+            } else {
+                acquire();
+            }
         }
         
         // Get Current Location
@@ -675,15 +693,7 @@
                         // Center map on user location
                         map.setView([userLocation.lat, userLocation.lng], 13);
                         
-                        // Add circle to show radius (visual reference only, doesn't filter)
-                        radiusCircle = L.circle([userLocation.lat, userLocation.lng], {
-                            radius: radius * 1000, // Convert km to meters
-                            fillColor: '#22c55e',
-                            fillOpacity: 0.1,
-                            color: '#16a34a',
-                            weight: 2,
-                            dashArray: '5, 5'
-                        }).addTo(map);
+                        // radius circle removed
                         
                         // Calculate distances and show ALL places (no radius filter)
                         calculateDistances();
@@ -875,6 +885,11 @@
                     <i class="fas fa-map-marker-alt"></i>
                     <span>${place.address}</span>
                 </div>
+                ${place.hours_today ? `
+                <div class="place-hours">
+                    <i class="fas fa-clock"></i>
+                    <span>Today: ${place.hours_today}</span>
+                </div>` : ''}
                 <div class="place-details">
                     ${distanceText}
                     ${userLocation ? `
@@ -918,6 +933,7 @@
                               '<span class="popup-non-certified-badge"><i class="fas fa-info-circle"></i> Non-Halal Certified</span>'}
                         </div>
                         <div class="popup-address">${place.address}</div>
+                        ${place.hours_today ? `<div class="popup-hours"><i class="fas fa-clock"></i> Today: ${place.hours_today}</div>` : ''}
                         ${place.distance !== null ? `<div class="popup-distance"><i class="fas fa-route"></i> ${place.distance} km away</div>` : ''}
                         <div class="popup-actions">
                             <button onclick="showPlaceDetails(${place.id}); showRoute(${place.id});" class="popup-btn-details">
@@ -1078,17 +1094,10 @@
         // Show Route
         function showRoute(placeId) {
             const place = allPlaces.find(p => p.id === placeId);
-            if (!place || !userLocation) {
-                Swal.fire({
-                    icon: 'info',
-                    title: 'Location Required',
-                    text: 'Please enable location services to get directions.',
-                    toast: true,
-                    position: 'top-end',
-                    showConfirmButton: false,
-                    timer: 4000,
-                    timerProgressBar: true
-                });
+            if (!place) return;
+            if (!userLocation) {
+                // Request user location, then recurse to draw route
+                ensureUserLocation(() => showRoute(placeId));
                 return;
             }
             
@@ -1192,15 +1201,9 @@
             
             document.getElementById('totalCount').textContent = filteredPlaces.length;
             document.getElementById('halalCount').textContent = halalCertified;
-            document.getElementById('radiusDisplay').textContent = radius;
-            
-            // Show radius stat item only if user location is available
+            // Radius stat disabled
             const radiusStatItem = document.getElementById('radiusStatItem');
-            if (userLocation) {
-                radiusStatItem.style.display = 'flex';
-            } else {
-                radiusStatItem.style.display = 'none';
-            }
+            if (radiusStatItem) radiusStatItem.style.display = 'none';
         }
         
         // Handle back button click based on return parameter

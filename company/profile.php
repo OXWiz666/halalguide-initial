@@ -1,6 +1,7 @@
 <?php
 include '../common/session.php';
 include '../common/connection.php';
+include '../common/randomstrings.php';
 
 date_default_timezone_set('Asia/Manila');
 
@@ -22,6 +23,51 @@ if (isset($_GET['logout'])) {
 
 $useraccount_id = $_SESSION['user_id'];
 $company_id = $_SESSION['company_id'];
+
+// Handle profile update
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['updateProfile'])) {
+    $company_name = mysqli_real_escape_string($conn, $_POST['company_name'] ?? '');
+    $company_description = mysqli_real_escape_string($conn, $_POST['company_description'] ?? '');
+    $contact_no = mysqli_real_escape_string($conn, $_POST['contact_no'] ?? '');
+    $tel_no = mysqli_real_escape_string($conn, $_POST['tel_no'] ?? '');
+    $email = mysqli_real_escape_string($conn, $_POST['email'] ?? '');
+    $address_text = mysqli_real_escape_string($conn, $_POST['address'] ?? '');
+    $has_prayer_faci = isset($_POST['has_prayer_faci']) ? 1 : 0;
+
+    // Ensure company exists
+    $existing = mysqli_query($conn, "SELECT address_id FROM tbl_company WHERE company_id = '$company_id' LIMIT 1");
+    $addr_row = $existing ? mysqli_fetch_assoc($existing) : null;
+    $address_id = $addr_row['address_id'] ?? null;
+
+    // Upsert address.other when user typed something
+    if ($address_text !== '') {
+        if (!empty($address_id)) {
+            mysqli_query($conn, "UPDATE tbl_address SET other = '$address_text' WHERE address_id = '$address_id'");
+        } else {
+            $new_address_id = generate_string($permitted_chars, 25);
+            $now = date('Y-m-d H:i:s');
+            mysqli_query($conn, "INSERT INTO tbl_address (address_id, other, date_added) VALUES ('$new_address_id', '$address_text', '$now')");
+            $address_id = $new_address_id;
+        }
+    }
+
+    // Build company update
+    $sets = [];
+    $sets[] = "company_name = '$company_name'";
+    $sets[] = "company_description = '$company_description'";
+    $sets[] = "contant_no = '$contact_no'";
+    $sets[] = "tel_no = '$tel_no'";
+    $sets[] = "email = '$email'";
+    $sets[] = "has_prayer_faci = $has_prayer_faci";
+    if (!empty($address_id)) { $sets[] = "address_id = '$address_id'"; }
+    $set_sql = implode(', ', $sets);
+
+    mysqli_query($conn, "UPDATE tbl_company SET $set_sql WHERE company_id = '$company_id'");
+
+    // Redirect to prevent resubmission and show status
+    header('Location: profile.php?updated=1');
+    exit();
+}
 
 $company_query = mysqli_query($conn, 
     "SELECT c.*, ut.usertype, s.status, a.other as address_line,
@@ -80,6 +126,11 @@ if (!empty($company_row['address_line'])) {
                 <h1 class="page-title">Company Profile</h1>
                 <p class="page-subtitle">Manage your company information</p>
             </div>
+            <?php if (isset($_GET['updated'])): ?>
+            <div class="alert alert-success mb-0" role="alert" style="border-radius: 10px;">
+                <i class="fas fa-check-circle me-1"></i> Profile updated successfully.
+            </div>
+            <?php endif; ?>
         </div>
         
         <form method="post" action="">

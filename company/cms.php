@@ -302,7 +302,7 @@ if (is_dir($image_storage)) {
     $files = scandir($image_storage);
     foreach ($files as $file) {
         if ($file != '.' && $file != '..' && preg_match('/\.(jpg|jpeg|png|gif)$/i', $file)) {
-            $image_path = '../uploads/company/images/' . $company_id . '/' . $file;
+            $image_path = '/uploads/company/images/' . $company_id . '/' . $file; // absolute web path
             $uploaded_images[] = [
                 'filename' => $file,
                 'path' => $image_path,
@@ -737,6 +737,8 @@ if (is_dir($video_storage)) {
                 e.preventDefault();
                 
                 const formData = new FormData(this);
+                // Ensure backend detects upload action when using AJAX
+                formData.append('upload_images', '1');
                 const uploadBtn = document.getElementById('uploadBtn');
                 const originalBtnText = uploadBtn.innerHTML;
                 

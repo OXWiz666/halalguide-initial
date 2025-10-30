@@ -1,4 +1,7 @@
-  <!-- Google Font: Source Sans Pro -->
+ <!-- Site Icon (Favicon) -->
+ <link rel="icon" type="image/png" href="../assets2/images/ph_halal_logo.png">
+ <link rel="apple-touch-icon" href="../assets2/images/ph_halal_logo.png">
+ <!-- Google Font: Source Sans Pro -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">

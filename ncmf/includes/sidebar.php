@@ -23,13 +23,19 @@ $current_page = $current_page ?? basename($_SERVER['PHP_SELF']);
             <i class="fas fa-user-plus"></i>
             <span>HCB Registrations</span>
         </a>
+        <!-- Certifying Bodies Accreditation (with submodules) -->
+        <div class="menu-label">Certifying Bodies Accreditation</div>
         <a href="certifications.php" class="menu-item <?php echo $current_page == 'certifications.php' ? 'active' : ''; ?>">
-            <i class="fas fa-certificate"></i>
-            <span>Certifications</span>
+            <i class="fas fa-clipboard-list"></i>
+            <span>All HCB Applications</span>
         </a>
         <a href="organizations.php" class="menu-item <?php echo $current_page == 'organizations.php' ? 'active' : ''; ?>">
             <i class="fas fa-building"></i>
-            <span>Certifying Bodies</span>
+            <span>Certifying Body Listing</span>
+        </a>
+        <a href="companies.php" class="menu-item <?php echo $current_page == 'companies.php' ? 'active' : ''; ?>">
+            <i class="fas fa-store"></i>
+            <span>Company Listing</span>
         </a>
         
         <div class="menu-label">Management</div>

@@ -1003,11 +1003,6 @@ $status_config = [
                             <span>Final Decision</span>
                         </button>
                         <?php endif; ?>
-                        
-                        <button class="btn btn-outline-primary" onclick="printApplication()">
-                            <i class="fas fa-print"></i>
-                            <span>Print Application</span>
-                        </button>
                     </div>
                 </div>
                 

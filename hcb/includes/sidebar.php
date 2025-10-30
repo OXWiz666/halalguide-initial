@@ -54,6 +54,10 @@ $current_page = $current_page ?? basename($_SERVER['PHP_SELF']);
             padding: 0;
             box-sizing: border-box;
         }
+        /* Ensure consistent typography across all HCB pages */
+        body, .sidebar, .sidebar *, .main-content {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
         /* Sidebar */
         .sidebar {
             position: fixed;

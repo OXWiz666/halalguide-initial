@@ -1,124 +1,4 @@
 <?php
-require_once '../common/session.php';
-require_once '../common/connection.php';
-
-date_default_timezone_set('Asia/Manila');
-
-check_login();
-check_access('Admin');
-
-$organization_id = $_SESSION['organization_id'];
-$status_filter = isset($_GET['status']) ? mysqli_real_escape_string($conn, $_GET['status']) : '';
-$search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
-$single_id = isset($_GET['id']) ? mysqli_real_escape_string($conn, $_GET['id']) : '';
-
-// Organization
-$org = mysqli_fetch_assoc(mysqli_query($conn, "SELECT organization_name FROM tbl_organization WHERE organization_id = '$organization_id'"));
-$org_name = $org['organization_name'] ?? 'Halal Certification Board';
-
-$where = "ca.organization_id = '$organization_id' AND ca.current_status = 'Approved'";
-if (!empty($search)) {
-    $where .= " AND (c.company_name LIKE '%$search%' OR ca.certificate_number LIKE '%$search%' OR ca.application_number LIKE '%$search%')";
-}
-if ($status_filter == 'active') {
-    $where .= " AND (ca.certificate_expiry_date IS NULL OR ca.certificate_expiry_date > NOW())";
-} elseif ($status_filter == 'expiring') {
-    $where .= " AND ca.certificate_expiry_date BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 30 DAY)";
-} elseif ($status_filter == 'expired') {
-    $where .= " AND ca.certificate_expiry_date < NOW()";
-}
-if (!empty($single_id)) {
-    $where .= " AND ca.application_id = '$single_id'";
-}
-
-$sql = "SELECT ca.*, c.company_name, c.email as company_email, c.contant_no as company_contact,
-                ut.usertype,
-                a.other as address_line, b.brgyDesc, cm.citymunDesc, p.provDesc
-        FROM tbl_certification_application ca
-        LEFT JOIN tbl_company c ON ca.company_id = c.company_id
-        LEFT JOIN tbl_usertype ut ON c.usertype_id = ut.usertype_id
-        LEFT JOIN tbl_address a ON c.address_id = a.address_id
-        LEFT JOIN refbrgy b ON a.brgyCode = b.brgyCode
-        LEFT JOIN refcitymun cm ON b.citymunCode = cm.citymunCode
-        LEFT JOIN refprovince p ON cm.provCode = p.provCode
-        WHERE $where
-        ORDER BY ca.certificate_issue_date DESC, ca.date_added DESC";
-
-$rs = mysqli_query($conn, $sql);
-$rows = [];
-while ($r = mysqli_fetch_assoc($rs)) { $rows[] = $r; }
-?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>HCB Certifications</title>
-  <style>
-    @page { size: A4; margin: 14mm 12mm; }
-    body { font-family: "Inter", Arial, Helvetica, sans-serif; color: #111827; }
-    .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #111827; padding-bottom: 8px; margin-bottom: 16px; }
-    .brand { display: flex; align-items: center; gap: 12px; }
-    .brand img { height: 44px; }
-    .brand-title { font-weight: 800; font-size: 16px; }
-    .brand-sub { color: #4b5563; font-size: 12px; }
-    .meta { text-align: right; font-size: 12px; color: #374151; }
-    h2 { margin: 6px 0 0 0; font-size: 18px; }
-    table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    th, td { border: 1px solid #e5e7eb; padding: 6px 8px; vertical-align: top; }
-    th { background: #f3f4f6; text-align: left; }
-  </style>
-</head>
-<body onload="window.print()">
-  <div class="header">
-    <div class="brand">
-      <img src="../assets2/images/ph_halal_logo.png" alt="Logo">
-      <div>
-        <div class="brand-title">National Commission on Muslim Filipinos</div>
-        <div class="brand-sub"><?php echo htmlspecialchars($org_name); ?> • Halal Certification Board</div>
-      </div>
-    </div>
-    <div class="meta">
-      <div><strong>Report:</strong> Certifications</div>
-      <?php if (!empty($status_filter)) { echo '<div>Status filter: ' . htmlspecialchars(ucfirst($status_filter)) . '</div>'; } ?>
-      <div><?php echo date('M d, Y g:i A'); ?></div>
-    </div>
-  </div>
-
-  <h2>Certifications</h2>
-  <table>
-    <thead>
-      <tr>
-        <th style="width: 22%;">Company</th>
-        <th style="width: 16%;">Certificate / Application</th>
-        <th style="width: 24%;">Address</th>
-        <th style="width: 14%;">Issue Date</th>
-        <th style="width: 14%;">Expiry Date</th>
-        <th style="width: 10%;">Type</th>
-      </tr>
-    </thead>
-    <tbody>
-      <?php if (empty($rows)): ?>
-        <tr><td colspan="6" style="text-align:center; color:#6b7280;">No records found</td></tr>
-      <?php else: foreach ($rows as $r): ?>
-        <tr>
-          <td><?php echo htmlspecialchars($r['company_name']); ?><br><small><?php echo htmlspecialchars($r['company_email'] ?: $r['company_contact']); ?></small></td>
-          <td>
-            <?php echo htmlspecialchars($r['certificate_number'] ?: '—'); ?><br>
-            <small>#<?php echo htmlspecialchars($r['application_number']); ?></small>
-          </td>
-          <td><?php echo htmlspecialchars(trim(($r['address_line']? $r['address_line'] . ', ' : '') . ($r['brgyDesc']? $r['brgyDesc'] . ', ' : '') . ($r['citymunDesc']? $r['citymunDesc'] . ', ' : '') . ($r['provDesc'] ?? ''))); ?></td>
-          <td><?php echo $r['certificate_issue_date'] ? date('M d, Y', strtotime($r['certificate_issue_date'])) : ($r['approved_date'] ? date('M d, Y', strtotime($r['approved_date'])) : '—'); ?></td>
-          <td><?php echo $r['certificate_expiry_date'] ? date('M d, Y', strtotime($r['certificate_expiry_date'])) : 'No Expiry'; ?></td>
-          <td><?php echo htmlspecialchars($r['application_type'] ?: 'New'); ?></td>
-        </tr>
-      <?php endforeach; endif; ?>
-    </tbody>
-  </table>
-</body>
-</html>
-
-<?php
 include '../common/session.php';
 include '../common/connection.php';
 
@@ -130,6 +10,7 @@ check_access('Admin');
 $organization_id = $_SESSION['organization_id'];
 $status_filter = isset($_GET['status']) ? mysqli_real_escape_string($conn, $_GET['status']) : '';
 $search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
+$single_id = isset($_GET['id']) ? mysqli_real_escape_string($conn, $_GET['id']) : '';
 
 $where = "ca.organization_id = '$organization_id' AND ca.current_status = 'Approved'";
 if (!empty($search)) {
@@ -159,6 +40,8 @@ $rs = mysqli_query($conn, $sql);
 $rows = [];
 while ($r = mysqli_fetch_assoc($rs)) { $rows[] = $r; }
 
+$row = !empty($rows) ? $rows[0] : null;
+
 function safe($v) { return htmlspecialchars($v ?? ''); }
 ?>
 <!DOCTYPE html>
@@ -170,7 +53,8 @@ function safe($v) { return htmlspecialchars($v ?? ''); }
   <style>
     @page { size: A4; margin: 12mm; }
     body { font-family: "Times New Roman", Georgia, serif; color: #111; }
-    .certificate { position: relative; width: 100%; min-height: 265mm; padding: 18mm 16mm; box-sizing: border-box; border: 10px solid #000; background: #fff; page-break-after: always; }
+    .certificate { position: relative; width: 100%; min-height: 265mm; padding: 18mm 16mm; box-sizing: border-box; border: 10px solid #000; background: #fff; }
+    .certificate:not(:last-child) { page-break-after: always; }
     .border-inner { position: absolute; inset: 8mm; border: 2px solid #000; pointer-events: none; }
     .header { text-align: center; margin-bottom: 10mm; }
     .header .org-top { font-size: 12px; }
@@ -190,9 +74,10 @@ function safe($v) { return htmlspecialchars($v ?? ''); }
   </style>
 </head>
 <body onload="window.print()">
-  <?php if (empty($rows)): ?>
+  <?php if (!$row): ?>
     <div style="text-align:center; margin-top:40mm; font-family:Arial; color:#555;">No approved certifications to print.</div>
-  <?php else: foreach ($rows as $it):
+  <?php else:
+    $it = $row;
     $full_address = trim(($it['address_line']? $it['address_line'] . ', ' : '') . ($it['brgyDesc']? $it['brgyDesc'] . ', ' : '') . ($it['citymunDesc']? $it['citymunDesc'] . ', ' : '') . ($it['provDesc'] ?? ''));
     $issue = $it['certificate_issue_date'] ? date('F d, Y', strtotime($it['certificate_issue_date'])) : '';
     $expiry = $it['certificate_expiry_date'] ? date('F d, Y', strtotime($it['certificate_expiry_date'])) : '';
@@ -247,7 +132,7 @@ function safe($v) { return htmlspecialchars($v ?? ''); }
       This certificate pertains to: <?php echo safe($it['organization_name']); ?> • Printed on <?php echo date('F d, Y'); ?>
     </div>
   </div>
-  <?php endforeach; endif; ?>
+  <?php endif; ?>
 </body>
 </html>
 

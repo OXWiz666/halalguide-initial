@@ -344,114 +344,71 @@ $stats = mysqli_fetch_assoc($stats_result);
             </form>
         </div>
         
-        <!-- Certifications List -->
+        <!-- Certifications List (table with pagination) -->
         <div class="content-card" id="hcbCertsPrint">
-            <h5 class="mb-4">Certifications (<?php echo count($certifications); ?>)</h5>
-            
+            <h5 class="mb-3">Certifications</h5>
             <?php if (empty($certifications)): ?>
             <div class="text-center py-5">
                 <i class="fas fa-certificate fa-3x text-muted mb-3"></i>
                 <p class="text-muted">No certifications found.</p>
             </div>
             <?php else: ?>
-            
-            <?php foreach ($certifications as $cert): ?>
-            <div class="certification-card <?php 
-                echo $cert['expiry_status'] == 'Expired' ? 'expired' : 
-                    ($cert['expiry_status'] == 'Expiring Soon' ? 'expiring' : ''); 
-            ?>">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <div class="flex-grow-1">
-                        <div class="mb-2">
-                            <span class="certificate-badge">
-                                <i class="fas fa-certificate"></i>
-                                <?php echo htmlspecialchars($cert['certificate_number'] ?? $cert['application_number']); ?>
-                            </span>
-                        </div>
-                        <h5 class="mb-1"><?php echo htmlspecialchars($cert['company_name']); ?></h5>
-                        <p class="text-muted mb-2 small">
-                            <i class="fas fa-tag"></i> <?php echo htmlspecialchars($cert['usertype'] ?? 'Unknown'); ?>
-                            <span class="mx-2">•</span>
-                            <i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($cert['full_address']); ?>
-                        </p>
-                    </div>
-                    <div class="text-end">
-                        <span class="expiry-badge <?php echo strtolower(str_replace(' ', '-', $cert['expiry_status'])); ?>">
-                            <?php if ($cert['expiry_status'] == 'Expired'): ?>
-                                <i class="fas fa-times-circle"></i>
-                            <?php elseif ($cert['expiry_status'] == 'Expiring Soon'): ?>
-                                <i class="fas fa-exclamation-triangle"></i>
-                            <?php else: ?>
-                                <i class="fas fa-check-circle"></i>
-                            <?php endif; ?>
-                            <?php echo $cert['expiry_status']; ?>
-                        </span>
-                    </div>
-                </div>
-                
-                <div class="row mb-3">
-                    <div class="col-md-3">
-                        <small class="text-muted d-block">Application Type</small>
-                        <p class="mb-0"><strong><?php echo htmlspecialchars($cert['application_type'] ?? 'New'); ?></strong></p>
-                    </div>
-                    <div class="col-md-3">
-                        <small class="text-muted d-block">Issue Date</small>
-                        <p class="mb-0">
-                            <i class="fas fa-calendar-check text-muted"></i> 
-                            <?php echo $cert['certificate_issue_date'] ? date('M d, Y', strtotime($cert['certificate_issue_date'])) : date('M d, Y', strtotime($cert['approved_date'])); ?>
-                        </p>
-                    </div>
-                    <div class="col-md-3">
-                        <small class="text-muted d-block">Expiry Date</small>
-                        <p class="mb-0">
-                            <i class="fas fa-calendar-times text-muted"></i> 
-                            <?php echo $cert['certificate_expiry_date'] ? date('M d, Y', strtotime($cert['certificate_expiry_date'])) : 'No Expiry'; ?>
-                        </p>
-                    </div>
-                    <div class="col-md-3">
-                        <small class="text-muted d-block">Application Number</small>
-                        <p class="mb-0">
-                            <i class="fas fa-hashtag text-muted"></i> 
-                            <?php echo htmlspecialchars($cert['application_number']); ?>
-                        </p>
-                    </div>
-                </div>
-                
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <small class="text-muted d-block">Contact Information</small>
-                        <p class="mb-1">
-                            <i class="fas fa-envelope text-muted"></i> 
-                            <?php echo htmlspecialchars($cert['company_email'] ?? 'N/A'); ?>
-                        </p>
-                        <p class="mb-0">
-                            <i class="fas fa-phone text-muted"></i> 
-                            <?php echo htmlspecialchars($cert['company_contact'] ?? 'N/A'); ?>
-                        </p>
-                    </div>
-                    <div class="col-md-6">
-                        <small class="text-muted d-block">Review Information</small>
-                        <p class="mb-1">
-                            <i class="fas fa-user-check text-muted"></i> 
-                            Approved by: <strong>Admin</strong>
-                        </p>
-                        <p class="mb-0">
-                            <i class="fas fa-calendar text-muted"></i> 
-                            Approved: <?php echo $cert['approved_date'] ? date('M d, Y g:i A', strtotime($cert['approved_date'])) : 'N/A'; ?>
-                        </p>
-                    </div>
-                </div>
-                
-                <div class="d-flex gap-2">
-                    <a href="application-details.php?id=<?php echo $cert['application_id']; ?>" class="btn btn-sm btn-primary">
-                        <i class="fas fa-eye"></i> View Details
-                    </a>
-                    <a href="companies.php?company_id=<?php echo $cert['company_id']; ?>" class="btn btn-sm btn-outline-primary">
-                        <i class="fas fa-building"></i> View Company
-                    </a>
-                </div>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Company</th>
+                            <th>Certificate</th>
+                            <th>Issue</th>
+                            <th>Expiry</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($certifications as $cert): ?>
+                        <tr>
+                            <td>
+                                <div style="font-weight:600;"><?php echo htmlspecialchars($cert['company_name']); ?></div>
+                                <small class="text-muted"><i class="fas fa-map-marker-alt"></i> <?php echo htmlspecialchars($cert['full_address']); ?></small>
+                            </td>
+                            <td><?php echo htmlspecialchars($cert['certificate_number'] ?? '—'); ?><br><small>#<?php echo htmlspecialchars($cert['application_number']); ?></small></td>
+                            <td><?php echo $cert['certificate_issue_date'] ? date('M d, Y', strtotime($cert['certificate_issue_date'])) : ($cert['approved_date'] ? date('M d, Y', strtotime($cert['approved_date'])) : '—'); ?></td>
+                            <td><?php echo $cert['certificate_expiry_date'] ? date('M d, Y', strtotime($cert['certificate_expiry_date'])) : 'No Expiry'; ?></td>
+                            <td><?php echo htmlspecialchars($cert['expiry_status']); ?></td>
+                            <td>
+                                <a href="application-details.php?id=<?php echo $cert['application_id']; ?>" class="btn btn-sm btn-primary"><i class="fas fa-eye"></i></a>
+                                <a href="print-certifications.php?id=<?php echo $cert['application_id']; ?>" target="_blank" class="btn btn-sm btn-outline-secondary"><i class="fas fa-print"></i></a>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
-            <?php endforeach; ?>
+            <?php
+              $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+              $per_page = 10;
+              // recompute total
+              $count_rs = mysqli_query($conn, "SELECT COUNT(*) as cnt FROM tbl_certification_application ca WHERE $where_clause");
+              $total_rows = 0; if ($count_rs) { $cr = mysqli_fetch_assoc($count_rs); $total_rows = (int)($cr['cnt'] ?? 0); }
+              $total_pages = max(1, (int)ceil($total_rows / $per_page));
+              $base = 'certifications.php?status=' . urlencode($status_filter) . '&search=' . urlencode($search) . '&page=';
+            ?>
+            <nav aria-label="Pagination">
+                <ul class="pagination justify-content-end">
+                    <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
+                        <a class="page-link" href="<?php echo $base . max(1, $page-1); ?>">Previous</a>
+                    </li>
+                    <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                        <li class="page-item <?php echo $i == $page ? 'active' : ''; ?>">
+                            <a class="page-link" href="<?php echo $base . $i; ?>"><?php echo $i; ?></a>
+                        </li>
+                    <?php endfor; ?>
+                    <li class="page-item <?php echo $page >= $total_pages ? 'disabled' : ''; ?>">
+                        <a class="page-link" href="<?php echo $base . min($total_pages, $page+1); ?>">Next</a>
+                    </li>
+                </ul>
+            </nav>
             <?php endif; ?>
         </div>
     </div>

@@ -18,8 +18,8 @@ $user_row = mysqli_fetch_assoc($user_query);
 $search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
 
 // Query establishments (usertype_id = 3)
-// Show Active (1) or Halal-Certified (4) establishments
-$where_clause = "c.usertype_id = 3 AND c.status_id IN (1, 4)";
+// Show ALL establishments regardless of status; badge will indicate certification
+$where_clause = "c.usertype_id = 3";
 if (!empty($search)) {
     $search_escaped = mysqli_real_escape_string($conn, $search);
     $where_clause .= " AND (c.company_name LIKE '%$search_escaped%' OR c.company_description LIKE '%$search_escaped%')";
@@ -73,6 +73,8 @@ if ($result) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Halal Establishments - HalalGuide</title>
+    <link rel="icon" type="image/png" href="../assets2/images/ph_halal_logo.png">
+    <link rel="apple-touch-icon" href="../assets2/images/ph_halal_logo.png">
     
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -164,7 +166,8 @@ if ($result) {
                             }
                         }
                     }
-                    $primary_image = !empty($company_images) ? $company_images[0] : null;
+                    // Use absolute web path for display
+                    $primary_image = !empty($company_images) ? str_replace('..', '', $company_images[0]) : null;
                     ?>
                     <div class="establishment-card" data-aos="fade-up">
                         <div class="establishment-image" style="<?php echo $primary_image ? 'background-image: url(' . htmlspecialchars($primary_image) . '); background-size: cover; background-position: center;' : ''; ?>">
@@ -177,7 +180,9 @@ if ($result) {
                                 <h3 class="establishment-name"><?php echo htmlspecialchars($est['company_name']); ?></h3>
                                 <div>
                                     <?php if ($est['status_id'] == 4): ?>
-                                        <span class="halal-badge"><i class="fas fa-certificate"></i> Certified</span>
+                                        <span class="halal-badge"><i class="fas fa-certificate"></i> Halal Certified</span>
+                                    <?php else: ?>
+                                        <span class="non-halal-badge"><i class="fas fa-info-circle"></i> Non-Halal Certified</span>
                                     <?php endif; ?>
                                 </div>
                             </div>
